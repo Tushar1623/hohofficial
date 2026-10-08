@@ -1,22 +1,34 @@
 import { Router } from 'express';
-import Settings from '../models/Settings.js';
+import { createSessionToken, revokeSessionToken, requireAuth } from '../middleware/auth.js';
 
 const router = Router();
 
-router.post('/login', async (req, res) => {
-  try {
-    const { passcode } = req.body;
-    let settings = await Settings.findOne({ key: 'site_settings' });
-    const validPasscode = settings?.adminPasscode || 'hoh2026';
+router.post('/login', (req, res) => {
+  const password = req.body.password || req.body.passcode;
+  const configuredPassword = process.env.ADMIN_PASSWORD;
 
-    if (passcode === validPasscode || passcode === 'hoh2026' || passcode === 'admin') {
-      res.json({ success: true, token: 'hoh_session_' + Date.now() });
-    } else {
-      res.status(401).json({ success: false, error: 'Invalid passcode' });
-    }
-  } catch (err) {
-    res.status(500).json({ error: 'Auth failed: ' + err.message });
+  if (!configuredPassword) {
+    return res.status(500).json({ error: 'ADMIN_PASSWORD is not configured on the server' });
   }
+
+  if (!password || password !== configuredPassword) {
+    return res.status(401).json({ error: 'Invalid admin password' });
+  }
+
+  const token = createSessionToken();
+  res.json({ success: true, token });
+});
+
+router.post('/logout', (req, res) => {
+  const header = req.headers.authorization;
+  if (header && header.startsWith('Bearer ')) {
+    revokeSessionToken(header.slice(7).trim());
+  }
+  res.json({ success: true });
+});
+
+router.get('/verify', requireAuth, (req, res) => {
+  res.json({ authenticated: true });
 });
 
 export default router;

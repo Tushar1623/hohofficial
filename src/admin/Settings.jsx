@@ -7,9 +7,8 @@ export const Settings = () => {
     tagline: "India's Biggest Stand-Up Comedy Talent Hunt",
     contactNumber: '+91 98301 22345',
     email: 'auditions@houseofhumour.in',
-    instagram: 'https://instagram.com/houseofhumourofficial',
-    youtube: 'https://youtube.com/@houseofhumour',
-    adminPasscode: 'hoh2026'
+    instagram: '',
+    youtube: ''
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -37,8 +36,8 @@ export const Settings = () => {
 
     try {
       setSaving(true);
-      await api.saveSettings(settings);
-      setMessage('Site settings and passkey updated successfully.');
+      await api.updateSettings(settings);
+      setMessage('Site settings updated successfully.');
     } catch (err) {
       alert('Failed to save settings: ' + err.message);
     } finally {
@@ -51,7 +50,7 @@ export const Settings = () => {
       <div className="admin-page-header">
         <div>
           <h1 className="admin-page-title">Global Brand &amp; Site Settings</h1>
-          <p className="admin-page-desc">Configure brand identity, official contact channels, and admin security passkey.</p>
+          <p className="admin-page-desc">Configure brand identity and official contact channels.</p>
         </div>
       </div>
 
@@ -137,18 +136,6 @@ export const Settings = () => {
                   disabled={saving}
                 />
               </div>
-            </div>
-
-            <div className="form-group" style={{ borderTop: '1px solid var(--border)', paddingTop: '16px', marginTop: '16px' }}>
-              <label>Admin Access Passkey</label>
-              <input
-                type="text"
-                required
-                value={settings.adminPasscode || 'hoh2026'}
-                onChange={(e) => setSettings({ ...settings, adminPasscode: e.target.value })}
-                disabled={saving}
-              />
-              <span className="field-hint">The passcode required to unlock the Admin Panel at /admin/login.</span>
             </div>
 
             <button type="submit" className="btn btn-primary" disabled={saving}>

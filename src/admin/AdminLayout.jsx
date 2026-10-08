@@ -8,7 +8,7 @@ export const AdminLayout = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const isAuthed = api.isAdminAuthenticated();
+    const isAuthed = api.isAuthenticated();
     if (!isAuthed) {
       navigate('/admin/login', { replace: true });
     } else {
@@ -16,8 +16,8 @@ export const AdminLayout = () => {
     }
   }, [navigate]);
 
-  const handleLogout = () => {
-    api.logoutAdmin();
+  const handleLogout = async () => {
+    await api.logout();
     navigate('/admin/login', { replace: true });
   };
 

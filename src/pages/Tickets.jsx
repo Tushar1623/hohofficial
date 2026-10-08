@@ -12,15 +12,15 @@ export const Tickets = () => {
 
     async function loadData() {
       try {
-        const [ev, ts, st] = await Promise.all([
+        const [evRes, tsRes, stRes] = await Promise.allSettled([
           api.getNextEvent(),
           api.getTicketSettings(),
           api.getSettings()
         ]);
         if (mounted) {
-          setEvent(ev);
-          setTicketSettings(ts);
-          setSettings(st);
+          if (evRes.status === 'fulfilled') setEvent(evRes.value);
+          if (tsRes.status === 'fulfilled') setTicketSettings(tsRes.value);
+          if (stRes.status === 'fulfilled') setSettings(stRes.value);
         }
       } catch (err) {
         console.error('Failed to load tickets data:', err);

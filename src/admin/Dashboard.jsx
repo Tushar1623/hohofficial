@@ -13,17 +13,17 @@ export const Dashboard = () => {
     let mounted = true;
     async function load() {
       try {
-        const [ev, appList, vid, db] = await Promise.all([
+        const [evRes, appRes, vidRes, healthRes] = await Promise.allSettled([
           api.getNextEvent(),
           api.getApplications(),
           api.getFeaturedVideo(),
-          api.getDatabaseStatus()
+          fetch('/api/health').then((r) => r.json())
         ]);
         if (mounted) {
-          setNextEvent(ev);
-          setApps(appList || []);
-          setVideo(vid);
-          setDbStatus(db);
+          if (evRes.status === 'fulfilled') setNextEvent(evRes.value);
+          if (appRes.status === 'fulfilled') setApps(appRes.value || []);
+          if (vidRes.status === 'fulfilled') setVideo(vidRes.value);
+          if (healthRes.status === 'fulfilled') setDbStatus(healthRes.value);
         }
       } catch (err) {
         console.error('Failed to load dashboard:', err);

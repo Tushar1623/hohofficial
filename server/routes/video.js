@@ -1,29 +1,30 @@
 import { Router } from 'express';
 import FeaturedVideo from '../models/FeaturedVideo.js';
-import { DEFAULT_FEATURED_VIDEO } from '../../src/data/defaults.js';
+import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
 
-// GET single featured video
+// GET single featured video (Public)
 router.get('/', async (req, res) => {
   try {
-    let video = await FeaturedVideo.findOne({ key: 'featured_video' });
-    if (!video) {
-      video = await FeaturedVideo.create({ key: 'featured_video', ...DEFAULT_FEATURED_VIDEO });
-    }
-    res.json(video);
+    const video = await FeaturedVideo.findOne({ key: 'featured_video' });
+    res.json(video || null);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch featured video: ' + err.message });
   }
 });
 
-// PUT update featured video
-router.put('/', async (req, res) => {
+// PUT update featured video (Admin only)
+router.put('/', requireAuth, async (req, res) => {
   try {
     const { title, youtubeUrl, thumbnail } = req.body;
+    if (!title || !youtubeUrl) {
+      return res.status(400).json({ error: 'Title and YouTube URL are required' });
+    }
+
     const updated = await FeaturedVideo.findOneAndUpdate(
       { key: 'featured_video' },
-      { $set: { title, youtubeUrl, thumbnail: thumbnail || '' } },
+      { $set: { title: title.trim(), youtubeUrl: youtubeUrl.trim(), thumbnail: thumbnail?.trim() || '' } },
       { new: true, upsert: true }
     );
     res.json(updated);

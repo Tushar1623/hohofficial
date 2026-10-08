@@ -1,13 +1,12 @@
 import { Router } from 'express';
 import Event from '../models/Event.js';
+import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
 
-// GET nearest published future event (for Homepage & Tickets default)
 router.get('/next', async (req, res) => {
   try {
     const nowIso = new Date().toISOString();
-    // Find published events with dateTime >= now or status === 'UPCOMING'/'LIVE'
     const nextEvent = await Event.findOne({
       published: true,
       $or: [
@@ -23,7 +22,6 @@ router.get('/next', async (req, res) => {
   }
 });
 
-// GET all events
 router.get('/', async (req, res) => {
   try {
     const events = await Event.find().sort({ dateTime: 1, createdAt: -1 });
@@ -33,7 +31,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET single event by id
 router.get('/:id', async (req, res) => {
   try {
     const event = await Event.findOne({ id: req.params.id });
@@ -44,8 +41,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// POST new event
-router.post('/', async (req, res) => {
+router.post('/', requireAuth, async (req, res) => {
   try {
     const data = req.body;
     if (!data.id) {
@@ -58,8 +54,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-// PUT update event by id
-router.put('/:id', async (req, res) => {
+router.put('/:id', requireAuth, async (req, res) => {
   try {
     const updated = await Event.findOneAndUpdate(
       { id: req.params.id },
@@ -72,8 +67,7 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// DELETE event by id
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireAuth, async (req, res) => {
   try {
     await Event.findOneAndDelete({ id: req.params.id });
     res.json({ success: true, id: req.params.id });

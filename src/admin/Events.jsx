@@ -85,7 +85,7 @@ export const Events = () => {
 
     try {
       if (editingEvent.id) {
-        await api.saveEvent(payload);
+        await api.updateEvent(editingEvent.id, payload);
       } else {
         await api.createEvent(payload);
       }

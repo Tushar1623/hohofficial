@@ -1,24 +1,21 @@
 import { Router } from 'express';
 import TicketSettings from '../models/TicketSettings.js';
-import { DEFAULT_TICKETS } from '../../src/data/defaults.js';
+import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
 
-// GET ticket settings
+// GET ticket settings (Public)
 router.get('/', async (req, res) => {
   try {
-    let tickets = await TicketSettings.findOne({ key: 'ticket_settings' });
-    if (!tickets) {
-      tickets = await TicketSettings.create({ key: 'ticket_settings', ...DEFAULT_TICKETS });
-    }
-    res.json(tickets);
+    const tickets = await TicketSettings.findOne({ key: 'ticket_settings' });
+    res.json(tickets || { generalPrice: 399, vipPrice: 699, bookingUrl: '', availability: 'OPEN' });
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch ticket settings: ' + err.message });
   }
 });
 
-// PUT update ticket settings
-router.put('/', async (req, res) => {
+// PUT update ticket settings (Admin only)
+router.put('/', requireAuth, async (req, res) => {
   try {
     const updated = await TicketSettings.findOneAndUpdate(
       { key: 'ticket_settings' },

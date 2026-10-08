@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { api } from '../services/api.js';
 
 export const Login = () => {
-  const [passcode, setPasscode] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -11,20 +11,19 @@ export const Login = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
     setError(null);
-    if (!passcode.trim()) {
-      return setError('Please enter your admin passcode.');
+
+    if (!password.trim()) {
+      return setError('Please enter your admin password.');
     }
 
     try {
       setLoading(true);
-      const ok = await api.loginAdmin(passcode.trim());
-      if (ok) {
+      const success = await api.login(password.trim());
+      if (success) {
         navigate('/admin', { replace: true });
-      } else {
-        setError('Incorrect admin passcode. Please try again.');
       }
     } catch (err) {
-      setError(err.message || 'Authentication failed. Please try again.');
+      setError(err.message || 'Authentication failed. Please check your password and try again.');
     } finally {
       setLoading(false);
     }
@@ -48,13 +47,13 @@ export const Login = () => {
 
         <form onSubmit={handleLogin} className="admin-login-form">
           <div className="form-group">
-            <label htmlFor="passcode">Admin Passkey</label>
+            <label htmlFor="password">Admin Password</label>
             <input
-              id="passcode"
+              id="password"
               type="password"
-              placeholder="Enter passcode (default: hoh2026)"
-              value={passcode}
-              onChange={(e) => setPasscode(e.target.value)}
+              placeholder="Enter password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               disabled={loading}
               autoFocus
             />

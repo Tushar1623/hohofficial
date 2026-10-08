@@ -1,17 +1,19 @@
 import { Router } from 'express';
 import Application from '../models/Application.js';
+import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
 
-// GET all applications with optional search
-router.get('/', async (req, res) => {
+// GET all applications (Admin only, safe search)
+router.get('/', requireAuth, async (req, res) => {
   try {
     const { search } = req.query;
     let query = {};
 
-    if (search && search.trim()) {
-      const term = search.trim();
-      const regex = new RegExp(term, 'i');
+    if (search && typeof search === 'string' && search.trim()) {
+      // Escape special regex characters to prevent regex injection
+      const escaped = search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(escaped, 'i');
       query = {
         $or: [
           { name: regex },
@@ -30,28 +32,32 @@ router.get('/', async (req, res) => {
   }
 });
 
-// POST submit contestant application
+// POST submit contestant application (Public)
 router.post('/', async (req, res) => {
   try {
-    const data = req.body;
+    const { name, phone, email, city, tape, bio, instagram, youtube, exp } = req.body;
 
-    // Validate required fields
-    if (!data.name?.trim() || !data.phone?.trim() || !data.email?.trim() || !data.city?.trim() || !data.tape?.trim() || !data.bio?.trim()) {
-      return res.status(400).json({ error: 'Please fill in all required fields: Name, Phone, Email, City, Performance Video, and Short Introduction.' });
-    }
+    if (!name?.trim()) return res.status(400).json({ error: 'Name is required' });
+    if (!phone?.trim()) return res.status(400).json({ error: 'Phone number is required' });
+    if (!email?.trim()) return res.status(400).json({ error: 'Email address is required' });
+    if (!city?.trim()) return res.status(400).json({ error: 'City is required' });
+    if (!tape?.trim()) return res.status(400).json({ error: 'Performance video URL is required' });
+    if (!bio?.trim()) return res.status(400).json({ error: 'Short introduction is required' });
 
-    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+    // Server-generated unique ID based on timestamp
+    const uniqueId = `HOH-${Date.now().toString(36).toUpperCase()}`;
+
     const newApp = {
-      id: `HOH-${randomSuffix}`,
-      name: data.name.trim(),
-      phone: data.phone.trim(),
-      email: data.email.trim(),
-      city: data.city.trim(),
-      tape: data.tape.trim(),
-      bio: data.bio.trim(),
-      instagram: data.instagram?.trim() || '',
-      youtube: data.youtube?.trim() || '',
-      exp: data.exp?.trim() || '',
+      id: uniqueId,
+      name: name.trim(),
+      phone: phone.trim(),
+      email: email.trim(),
+      city: city.trim(),
+      tape: tape.trim(),
+      bio: bio.trim(),
+      instagram: instagram?.trim() || '',
+      youtube: youtube?.trim() || '',
+      exp: exp?.trim() || '',
       status: 'PENDING',
       timestamp: new Date().toISOString()
     };
@@ -59,12 +65,12 @@ router.post('/', async (req, res) => {
     const created = await Application.create(newApp);
     res.status(201).json(created);
   } catch (err) {
-    res.status(400).json({ error: 'Failed to submit application: ' + err.message });
+    res.status(500).json({ error: 'Failed to save application: ' + err.message });
   }
 });
 
-// PUT update status or details
-router.put('/:id', async (req, res) => {
+// PUT update application status (Admin only)
+router.put('/:id', requireAuth, async (req, res) => {
   try {
     const updated = await Application.findOneAndUpdate(
       { id: req.params.id },
@@ -78,8 +84,8 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// DELETE application
-router.delete('/:id', async (req, res) => {
+// DELETE application (Admin only)
+router.delete('/:id', requireAuth, async (req, res) => {
   try {
     await Application.findOneAndDelete({ id: req.params.id });
     res.json({ success: true, id: req.params.id });

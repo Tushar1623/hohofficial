@@ -14,16 +14,17 @@ export const Home = () => {
 
     async function loadData() {
       try {
-        const [eventData, videoData] = await Promise.all([
+        const [eventData, videoData] = await Promise.allSettled([
           api.getNextEvent(),
           api.getFeaturedVideo()
         ]);
+
         if (mounted) {
-          setNextEvent(eventData);
-          setFeaturedVideo(videoData);
+          if (eventData.status === 'fulfilled') setNextEvent(eventData.value);
+          if (videoData.status === 'fulfilled') setFeaturedVideo(videoData.value);
         }
       } catch (err) {
-        console.error('Failed to load home data:', err);
+        console.error('Failed to load homepage data:', err);
       } finally {
         if (mounted) setLoading(false);
       }
@@ -35,7 +36,6 @@ export const Home = () => {
 
   return (
     <div className="page-wrapper">
-      {/* 1. HOH INTRODUCTION / HERO */}
       <section className="hero-section">
         <div className="container">
           <div className="hero-content text-center">
@@ -60,7 +60,6 @@ export const Home = () => {
         </div>
       </section>
 
-      {/* 2. FEATURED YOUTUBE VIDEO (DIRECTLY BELOW HERO) */}
       {featuredVideo && featuredVideo.youtubeUrl && (
         <section className="section-watch">
           <div className="container">
@@ -78,7 +77,6 @@ export const Home = () => {
         </section>
       )}
 
-      {/* 3. NEXT EVENT */}
       <section className="section-next-event">
         <div className="container">
           <div className="section-header text-center">
