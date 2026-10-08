@@ -1,255 +1,226 @@
 import React, { useState, useEffect } from 'react';
-import { useApp } from '../context/AppContext';
+import { api } from '../services/api';
 
 export const EventManagement = () => {
-  const { activeEvent, updateEvent } = useApp();
-
-  const [form, setForm] = useState({
-    title: '',
-    date: '',
-    time: '',
-    venue: '',
-    city: '',
-    prize: '',
-    genCost: 399,
-    vipCost: 699,
-    seatsLeft: 18,
-    totalCapacity: 100,
-    targetDateStr: '2026-10-02T18:30',
-    description: '',
-    announcement: '',
-    urgencyTag: 'FAST FILLING'
-  });
-
-  const [saving, setSaving] = useState(false);
+  const [events, setEvents] = useState([]);
+  const [editingEvent, setEditingEvent] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (activeEvent) {
-      setForm({
-        title: activeEvent.title || '',
-        date: activeEvent.date || '',
-        time: activeEvent.time || '',
-        venue: activeEvent.venue || '',
-        city: activeEvent.city || '',
-        prize: activeEvent.prize || '',
-        genCost: activeEvent.genCost || 399,
-        vipCost: activeEvent.vipCost || 699,
-        seatsLeft: activeEvent.seatsLeft || 18,
-        totalCapacity: activeEvent.totalCapacity || 100,
-        targetDateStr: activeEvent.targetEpoch
-          ? new Date(activeEvent.targetEpoch).toISOString().slice(0, 16)
-          : '2026-10-02T18:30',
-        description: activeEvent.description || '',
-        announcement: activeEvent.announcement || '',
-        urgencyTag: activeEvent.urgencyTag || 'FAST FILLING'
-      });
-    }
-  }, [activeEvent]);
+    load();
+  }, []);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+  const load = async () => {
+    const list = await api.getEvents();
+    setEvents(list);
+    setLoading(false);
   };
 
   const handleSave = async (e) => {
     e.preventDefault();
-    setSaving(true);
-    try {
-      const epoch = new Date(form.targetDateStr).getTime() || Date.now() + 86400000;
-      await updateEvent({
-        ...form,
-        genCost: Number(form.genCost),
-        vipCost: Number(form.vipCost),
-        seatsLeft: Number(form.seatsLeft),
-        totalCapacity: Number(form.totalCapacity),
-        targetEpoch: epoch
-      });
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setSaving(false);
+    if (!editingEvent.title || !editingEvent.city) return;
+
+    if (editingEvent.id) {
+      await api.saveEvent(editingEvent);
+    } else {
+      await api.createEvent(editingEvent);
+    }
+    setEditingEvent(null);
+    load();
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm('Delete this event?')) {
+      await api.deleteEvent(id);
+      load();
     }
   };
 
+  const startNew = () => {
+    setEditingEvent({
+      title: '',
+      city: '',
+      date: '',
+      time: '6:30 PM ONWARDS',
+      venue: '',
+      prize: '₹15,000',
+      genCost: 399,
+      vipCost: 699,
+      seatsLeft: 50,
+      totalCapacity: 100,
+      description: '',
+      published: true
+    });
+  };
+
   return (
-    <div className="admin-events-view">
+    <div>
       <div className="card-section">
         <div className="card-section-head">
           <div>
-            <h3>CONFIGURING ACTIVE SHOWCASE</h3>
-            <p>Updates will reflect immediately on the hero section, countdown, and pass checkout.</p>
+            <h3>TOUR EVENTS ({events.length})</h3>
+            <p style={{ fontSize: '13px', color: 'var(--gray)' }}>Manage tour chapters, ticket prices, and show dates</p>
           </div>
+          <button type="button" className="btn btn-primary btn-sm" onClick={startNew}>
+            + Add New Chapter
+          </button>
         </div>
 
-        <form onSubmit={handleSave} className="admin-form-grid">
-          <div className="form-group">
-            <label className="form-label">EVENT / CHAPTER TITLE</label>
-            <input
-              type="text"
-              name="title"
-              value={form.title}
-              onChange={handleChange}
-              className="form-input"
-              required
-            />
-          </div>
+        {/* Edit / Create Form */}
+        {editingEvent && (
+          <form onSubmit={handleSave} style={{ background: '#0A0A0A', border: '1px solid var(--orange)', borderRadius: 'var(--radius)', padding: '24px', marginBottom: '24px' }}>
+            <h4 style={{ fontFamily: 'var(--font-display)', fontSize: '20px', color: '#FFF', marginBottom: '16px' }}>
+              {editingEvent.id ? 'EDIT EVENT' : 'CREATE NEW EVENT'}
+            </h4>
 
-          <div className="form-group">
-            <label className="form-label">CITY</label>
-            <input
-              type="text"
-              name="city"
-              value={form.city}
-              onChange={handleChange}
-              className="form-input"
-              required
-            />
-          </div>
+            <div className="form-row form-row-2">
+              <div className="form-group">
+                <label className="form-label">Event Title *</label>
+                <input
+                  type="text"
+                  value={editingEvent.title}
+                  onChange={(e) => setEditingEvent({ ...editingEvent, title: e.target.value })}
+                  className="form-input"
+                  required
+                />
+              </div>
 
-          <div className="form-group">
-            <label className="form-label">DISPLAY DATE</label>
-            <input
-              type="text"
-              name="date"
-              placeholder="e.g. 2 OCTOBER"
-              value={form.date}
-              onChange={handleChange}
-              className="form-input"
-              required
-            />
-          </div>
+              <div className="form-group">
+                <label className="form-label">City *</label>
+                <input
+                  type="text"
+                  value={editingEvent.city}
+                  onChange={(e) => setEditingEvent({ ...editingEvent, city: e.target.value })}
+                  className="form-input"
+                  required
+                />
+              </div>
+            </div>
 
-          <div className="form-group">
-            <label className="form-label">SHOW TIME</label>
-            <input
-              type="text"
-              name="time"
-              placeholder="e.g. 6:30 PM ONWARDS"
-              value={form.time}
-              onChange={handleChange}
-              className="form-input"
-              required
-            />
-          </div>
+            <div className="form-row form-row-2">
+              <div className="form-group">
+                <label className="form-label">Display Date *</label>
+                <input
+                  type="text"
+                  placeholder="e.g. 24 OCTOBER 2026"
+                  value={editingEvent.date}
+                  onChange={(e) => setEditingEvent({ ...editingEvent, date: e.target.value })}
+                  className="form-input"
+                  required
+                />
+              </div>
 
-          <div className="form-group">
-            <label className="form-label">VENUE NAME</label>
-            <input
-              type="text"
-              name="venue"
-              value={form.venue}
-              onChange={handleChange}
-              className="form-input"
-              required
-            />
-          </div>
+              <div className="form-group">
+                <label className="form-label">Venue Name *</label>
+                <input
+                  type="text"
+                  value={editingEvent.venue}
+                  onChange={(e) => setEditingEvent({ ...editingEvent, venue: e.target.value })}
+                  className="form-input"
+                  required
+                />
+              </div>
+            </div>
 
-          <div className="form-group">
-            <label className="form-label">WINNER CASH PURSE</label>
-            <input
-              type="text"
-              name="prize"
-              value={form.prize}
-              onChange={handleChange}
-              className="form-input"
-              required
-            />
-          </div>
+            <div className="form-row form-row-2">
+              <div className="form-group">
+                <label className="form-label">General Cost (₹)</label>
+                <input
+                  type="number"
+                  value={editingEvent.genCost}
+                  onChange={(e) => setEditingEvent({ ...editingEvent, genCost: Number(e.target.value) })}
+                  className="form-input"
+                />
+              </div>
 
-          <div className="form-group">
-            <label className="form-label">GENERAL PASS PRICE (₹)</label>
-            <input
-              type="number"
-              name="genCost"
-              value={form.genCost}
-              onChange={handleChange}
-              className="form-input"
-              required
-            />
-          </div>
+              <div className="form-group">
+                <label className="form-label">VIP Cost (₹)</label>
+                <input
+                  type="number"
+                  value={editingEvent.vipCost}
+                  onChange={(e) => setEditingEvent({ ...editingEvent, vipCost: Number(e.target.value) })}
+                  className="form-input"
+                />
+              </div>
+            </div>
 
-          <div className="form-group">
-            <label className="form-label">VIP PASS PRICE (₹)</label>
-            <input
-              type="number"
-              name="vipCost"
-              value={form.vipCost}
-              onChange={handleChange}
-              className="form-input"
-              required
-            />
-          </div>
+            <div className="form-group">
+              <label className="form-label">Event Description</label>
+              <textarea
+                rows="2"
+                value={editingEvent.description}
+                onChange={(e) => setEditingEvent({ ...editingEvent, description: e.target.value })}
+                className="form-textarea"
+              />
+            </div>
 
-          <div className="form-group">
-            <label className="form-label">REMAINING SEATS</label>
-            <input
-              type="number"
-              name="seatsLeft"
-              value={form.seatsLeft}
-              onChange={handleChange}
-              className="form-input"
-              required
-            />
-          </div>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button type="submit" className="btn btn-primary btn-sm">
+                Save Event
+              </button>
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => setEditingEvent(null)}>
+                Cancel
+              </button>
+            </div>
+          </form>
+        )}
 
-          <div className="form-group">
-            <label className="form-label">TOTAL ROOM CAPACITY</label>
-            <input
-              type="number"
-              name="totalCapacity"
-              value={form.totalCapacity}
-              onChange={handleChange}
-              className="form-input"
-              required
-            />
+        {/* Events Table */}
+        {loading ? (
+          <div style={{ padding: '30px', textAlign: 'center', color: 'var(--gray)' }}>Loading events...</div>
+        ) : (
+          <div className="table-responsive">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>TITLE</th>
+                  <th>CITY</th>
+                  <th>DATE</th>
+                  <th>VENUE</th>
+                  <th>GEN / VIP</th>
+                  <th>STATUS</th>
+                  <th>ACTIONS</th>
+                </tr>
+              </thead>
+              <tbody>
+                {events.map((evt) => (
+                  <tr key={evt.id}>
+                    <td><strong style={{ color: '#FFF' }}>{evt.title}</strong></td>
+                    <td>{evt.city}</td>
+                    <td>{evt.date}</td>
+                    <td>{evt.venue}</td>
+                    <td>₹{evt.genCost} / ₹{evt.vipCost}</td>
+                    <td>
+                      <span className="status-badge status-approved">
+                        {evt.published !== false ? 'Published' : 'Draft'}
+                      </span>
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          style={{ padding: '4px 8px', minHeight: '30px' }}
+                          onClick={() => setEditingEvent(evt)}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          style={{ color: '#ff6b6b', padding: '4px 8px', minHeight: '30px' }}
+                          onClick={() => handleDelete(evt.id)}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-
-          <div className="form-group">
-            <label className="form-label">COUNTDOWN TARGET (DATE &amp; TIME)</label>
-            <input
-              type="datetime-local"
-              name="targetDateStr"
-              value={form.targetDateStr}
-              onChange={handleChange}
-              className="form-input"
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">URGENCY BADGE TEXT</label>
-            <input
-              type="text"
-              name="urgencyTag"
-              value={form.urgencyTag}
-              onChange={handleChange}
-              className="form-input"
-            />
-          </div>
-
-          <div className="form-group form-full">
-            <label className="form-label">EVENT DESCRIPTION</label>
-            <textarea
-              name="description"
-              rows="3"
-              value={form.description}
-              onChange={handleChange}
-              className="form-textarea"
-              required
-            />
-          </div>
-
-          <div className="form-group form-full">
-            <button
-              type="submit"
-              className="btn-action-primary"
-              disabled={saving}
-            >
-              <span className="material-symbols-outlined">save</span>
-              <span>{saving ? 'SAVING CHANGES...' : 'SAVE EVENT SETTINGS'}</span>
-            </button>
-          </div>
-        </form>
+        )}
       </div>
     </div>
   );

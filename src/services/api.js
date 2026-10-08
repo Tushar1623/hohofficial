@@ -1,221 +1,241 @@
 /**
- * HOUSE OF HUMOUR (HoH) - API Service Layer
- * Clean asynchronous interface that wraps the underlying storage provider.
- * When the backend (Express + MongoDB) is connected, only this file needs to update its fetch URLs.
+ * HOUSE OF HUMOUR (HoH) - Service Layer
+ * Clean async API interface with simple storage persistence.
+ * Ready for drop-in Express + MongoDB backend swap in Phase 3.
  */
 
-import { storage } from './storage.js';
+import {
+  DEFAULT_EVENTS,
+  DEFAULT_VIDEOS,
+  DEFAULT_TALENT,
+  DEFAULT_GUESTS,
+  DEFAULT_SPONSORS,
+  DEFAULT_APPLICATIONS,
+  DEFAULT_SETTINGS
+} from '../data/defaults.js';
 
-// Helper to simulate network latency if needed (currently minimal for fast UX)
-const delay = (ms = 50) => new Promise((resolve) => setTimeout(resolve, ms));
+// Simple storage helper
+const memory = new Map();
+
+export const storage = {
+  get: (key, fallback) => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const item = window.localStorage.getItem(key);
+        return item ? JSON.parse(item) : fallback;
+      }
+      return memory.has(key) ? memory.get(key) : fallback;
+    } catch {
+      return fallback;
+    }
+  },
+  set: (key, val) => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.setItem(key, JSON.stringify(val));
+      } else {
+        memory.set(key, val);
+      }
+    } catch { }
+  },
+  remove: (key) => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.removeItem(key);
+      } else {
+        memory.delete(key);
+      }
+    } catch { }
+  }
+};
+
+const KEYS = {
+  EVENTS: 'hoh_events',
+  APPS: 'hoh_applications',
+  VIDEOS: 'hoh_videos',
+  TALENT: 'hoh_talent',
+  GUESTS: 'hoh_guests',
+  SPONSORS: 'hoh_sponsors',
+  SETTINGS: 'hoh_settings',
+  AUTH: 'hoh_admin_auth'
+};
 
 export const api = {
   // EVENTS
   async getEvents() {
-    await delay();
-    return storage.getEvents();
+    return storage.get(KEYS.EVENTS, DEFAULT_EVENTS);
   },
 
   async getEvent(id) {
-    await delay();
-    const list = storage.getEvents();
-    return list.find((e) => e.id === id) || storage.getEvent();
+    const events = await this.getEvents();
+    return events.find((e) => e.id === id) || null;
   },
 
-  async getActiveEvent() {
-    await delay();
-    return storage.getEvent();
+  // Automatically selects nearest upcoming published event (Phase 14)
+  async getNearestUpcomingEvent() {
+    const events = await this.getEvents();
+    const now = Date.now();
+    const upcoming = events
+      .filter((e) => (e.published !== false) && (!e.targetEpoch || e.targetEpoch >= now - (4 * 3600000))) // within 4h of event or future
+      .sort((a, b) => (a.targetEpoch || 0) - (b.targetEpoch || 0));
+
+    return upcoming[0] || null;
   },
 
-  async updateActiveEvent(data) {
-    await delay();
-    const updated = { ...storage.getEvent(), ...data };
-    storage.saveEvent(updated);
-    // Also update in all events list
-    const list = storage.getEvents();
-    const idx = list.findIndex((e) => e.id === updated.id);
+  async saveEvent(updatedEvent) {
+    const list = await this.getEvents();
+    const idx = list.findIndex((e) => e.id === updatedEvent.id);
     if (idx !== -1) {
-      list[idx] = updated;
+      list[idx] = updatedEvent;
     } else {
-      list.unshift(updated);
+      list.unshift(updatedEvent);
     }
-    storage.saveEvents(list);
-    return updated;
+    storage.set(KEYS.EVENTS, list);
+    return updatedEvent;
   },
 
-  async createEvent(data) {
-    await delay();
+  async createEvent(eventData) {
+    const list = await this.getEvents();
     const newEvent = {
       id: `ev-${Date.now().toString(36)}`,
-      ...data
+      published: true,
+      ...eventData
     };
-    const list = storage.getEvents();
     list.unshift(newEvent);
-    storage.saveEvents(list);
+    storage.set(KEYS.EVENTS, list);
     return newEvent;
   },
 
-  // APPLICATIONS / AUDITIONS
+  async deleteEvent(id) {
+    const list = await this.getEvents();
+    const filtered = list.filter((e) => e.id !== id);
+    storage.set(KEYS.EVENTS, filtered);
+    return true;
+  },
+
+  // APPLICATIONS
   async getApplications() {
-    await delay();
-    return storage.getApplications();
+    return storage.get(KEYS.APPS, DEFAULT_APPLICATIONS);
   },
 
   async submitApplication(data) {
-    await delay(100);
-    const existing = storage.getApplications();
-    const randomNum = Math.floor(1000 + Math.random() * 9000);
+    const list = await this.getApplications();
+    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
     const newApp = {
-      id: `#HOH-${randomNum}`,
-      name: data.name || '',
-      city: data.city || '',
-      phone: data.phone || '',
-      email: data.email || '',
+      id: `#HOH-${randomSuffix}`,
+      name: data.name?.trim() || '',
+      phone: data.phone?.trim() || '',
+      email: data.email?.trim() || '',
       age: data.age || '',
-      instagram: data.instagram || '',
-      youtube: data.youtube || '',
-      exp: data.exp || data.comedyExperience || '',
-      tape: data.tape || data.performanceVideo || '',
-      bio: data.bio || data.shortIntroduction || '',
+      city: data.city?.trim() || '',
+      tape: data.tape?.trim() || data.performanceVideo?.trim() || '',
+      bio: data.bio?.trim() || data.shortIntroduction?.trim() || '',
+      instagram: data.instagram?.trim() || '',
+      youtube: data.youtube?.trim() || '',
+      exp: data.exp || data.comedyExperience || 'Audition',
       status: 'pending',
       timestamp: new Date().toISOString()
     };
-    const updatedList = [newApp, ...existing];
-    storage.saveApplications(updatedList);
+    list.unshift(newApp);
+    storage.set(KEYS.APPS, list);
     return newApp;
   },
 
   async updateApplication(id, updates) {
-    await delay();
-    const existing = storage.getApplications();
-    const idx = existing.findIndex((app) => app.id === id);
-    if (idx === -1) {
-      throw new Error(`Application ${id} not found`);
+    const list = await this.getApplications();
+    const idx = list.findIndex((a) => a.id === id);
+    if (idx !== -1) {
+      list[idx] = { ...list[idx], ...updates };
+      storage.set(KEYS.APPS, list);
+      return list[idx];
     }
-    existing[idx] = { ...existing[idx], ...updates };
-    storage.saveApplications(existing);
-    return existing[idx];
+    throw new Error('Application not found');
   },
 
   async deleteApplication(id) {
-    await delay();
-    const existing = storage.getApplications();
-    const filtered = existing.filter((app) => app.id !== id);
-    storage.saveApplications(filtered);
-    return { success: true, id };
+    const list = await this.getApplications();
+    const filtered = list.filter((a) => a.id !== id);
+    storage.set(KEYS.APPS, filtered);
+    return true;
   },
 
   // VIDEOS
-  async getFeaturedVideo() {
-    await delay();
-    return storage.getFeaturedVideo();
-  },
-
-  async updateFeaturedVideo(data) {
-    await delay();
-    const updated = { ...storage.getFeaturedVideo(), ...data };
-    storage.saveFeaturedVideo(updated);
-    return updated;
-  },
-
   async getVideos() {
-    await delay();
-    return storage.getVideos();
+    return storage.get(KEYS.VIDEOS, DEFAULT_VIDEOS);
   },
 
-  async addVideo(data) {
-    await delay();
+  async addVideo(videoData) {
+    const list = await this.getVideos();
     const newVideo = {
       id: `vid-${Date.now().toString(36)}`,
-      ...data
+      ...videoData
     };
-    const list = storage.getVideos();
     list.unshift(newVideo);
-    storage.saveVideos(list);
+    storage.set(KEYS.VIDEOS, list);
     return newVideo;
   },
 
   async deleteVideo(id) {
-    await delay();
-    const list = storage.getVideos();
-    const filtered = list.filter((v) => v.id !== id);
-    storage.saveVideos(filtered);
-    return { success: true, id };
+    const list = await this.getVideos();
+    storage.set(KEYS.VIDEOS, list.filter((v) => v.id !== id));
+    return true;
   },
 
   // TALENT
   async getTalent() {
-    await delay();
-    return storage.getTalent();
+    return storage.get(KEYS.TALENT, DEFAULT_TALENT);
   },
 
-  async updateTalent(id, data) {
-    await delay();
-    const list = storage.getTalent();
-    const idx = list.findIndex((t) => t.id === id);
-    if (idx !== -1) {
-      list[idx] = { ...list[idx], ...data };
-      storage.saveTalent(list);
-      return list[idx];
-    }
-    throw new Error(`Talent ${id} not found`);
-  },
-
-  async addTalent(data) {
-    await delay();
-    const newTalent = {
-      id: `talent-${Date.now().toString(36)}`,
-      rank: `#${storage.getTalent().length + 1}`,
-      ...data
-    };
-    const list = storage.getTalent();
-    list.push(newTalent);
-    storage.saveTalent(list);
-    return newTalent;
-  },
-
-  async deleteTalent(id) {
-    await delay();
-    const list = storage.getTalent();
-    const filtered = list.filter((t) => t.id !== id);
-    storage.saveTalent(filtered);
-    return { success: true, id };
+  async saveTalent(talentList) {
+    storage.set(KEYS.TALENT, talentList);
+    return talentList;
   },
 
   // GUESTS
   async getGuests() {
-    await delay();
-    return storage.getGuests();
+    return storage.get(KEYS.GUESTS, DEFAULT_GUESTS);
   },
 
-  async updateGuests(guestsList) {
-    await delay();
-    storage.saveGuests(guestsList);
+  async saveGuests(guestsList) {
+    storage.set(KEYS.GUESTS, guestsList);
     return guestsList;
   },
 
   // SPONSORS
   async getSponsors() {
-    await delay();
-    return storage.getSponsors();
+    return storage.get(KEYS.SPONSORS, DEFAULT_SPONSORS);
   },
 
-  async updateSponsors(sponsorsList) {
-    await delay();
-    storage.saveSponsors(sponsorsList);
+  async saveSponsors(sponsorsList) {
+    storage.set(KEYS.SPONSORS, sponsorsList);
     return sponsorsList;
   },
 
   // SETTINGS
   async getSettings() {
-    await delay();
-    return storage.getSettings();
+    return storage.get(KEYS.SETTINGS, DEFAULT_SETTINGS);
   },
 
-  async updateSettings(data) {
-    await delay();
-    const updated = { ...storage.getSettings(), ...data };
-    storage.saveSettings(updated);
-    return updated;
+  async saveSettings(settingsData) {
+    storage.set(KEYS.SETTINGS, settingsData);
+    return settingsData;
+  },
+
+  // SIMPLE ADMIN AUTH
+  isAdminAuthenticated() {
+    return storage.get(KEYS.AUTH, false) === true;
+  },
+
+  loginAdmin(passcode) {
+    // Simple admin passcode (default: hoh2026 or admin)
+    if (passcode === 'hoh2026' || passcode === 'admin') {
+      storage.set(KEYS.AUTH, true);
+      return true;
+    }
+    return false;
+  },
+
+  logoutAdmin() {
+    storage.remove(KEYS.AUTH);
   }
 };

@@ -1,73 +1,53 @@
 import React from 'react';
-import { Navbar } from '../components/Navbar/Navbar';
-import { Footer } from '../components/Footer/Footer';
-import { ContestantForm } from '../components/ContestantForm/ContestantForm';
+import { Navbar } from '../components/Navbar';
+import { Footer } from '../components/Footer';
+import { ContestantForm } from '../components/ContestantForm';
 
 export const Apply = () => {
   return (
-    <div className="page-apply-root">
+    <div>
       <Navbar />
 
-      <main className="section page-main-content">
+      <main className="section">
         <div className="container">
-          {/* Header Banner */}
-          <div className="page-banner text-center">
-            <div className="section-badge">
-              <span className="material-symbols-outlined">mic</span>
-              <span>OFFICIAL AUDITION PORTAL</span>
-            </div>
-            <h1 className="page-title">
+          <div className="section-head">
+            <span className="section-badge">OFFICIAL AUDITION PORTAL</span>
+            <h1 className="section-title">
               APPLY AS A <span className="text-gradient">CONTESTANT</span>
             </h1>
-            <p className="page-subtitle mx-auto">
-              10 Comics per regional chapter. 5 minutes on the live microphone. Complete the official registration below to secure an audition spot.
+            <p className="section-subtitle">
+              10 Comics per regional chapter. 5 minutes on the live microphone. Auditions are 100% free.
             </p>
           </div>
 
-          <div className="apply-layout-grid">
-            {/* Left Column: Guidelines & Criteria */}
-            <div className="apply-info-sidebar">
-              <div className="guidelines-card">
-                <h3 className="guidelines-title">AUDITION CRITERIA</h3>
-                <ul className="guidelines-list">
-                  <li>
-                    <span className="material-symbols-outlined">check_circle</span>
-                    <div>
-                      <strong>Original Material Only:</strong> Plagiarized jokes or translated sets result in immediate disqualification.
-                    </div>
-                  </li>
-                  <li>
-                    <span className="material-symbols-outlined">check_circle</span>
-                    <div>
-                      <strong>3–5 Min Video Set:</strong> Submit an unedited video of you performing in front of a live audience, open mic, or rehearsal camera.
-                    </div>
-                  </li>
-                  <li>
-                    <span className="material-symbols-outlined">check_circle</span>
-                    <div>
-                      <strong>No Entry Fees:</strong> Auditioning for House of Humour is 100% free. We never charge artists to step on stage.
-                    </div>
-                  </li>
-                  <li>
-                    <span className="material-symbols-outlined">check_circle</span>
-                    <div>
-                      <strong>Instant Digital Badge:</strong> Once submitted, your official contestant pass with QR code will be generated immediately.
-                    </div>
-                  </li>
-                </ul>
-              </div>
-
-              <div className="guidelines-card prize-highlight-box">
-                <span className="material-symbols-outlined star-icon">monetization_on</span>
-                <h4 className="prize-callout-title">₹15,000 LIVE SPOT PURSE</h4>
-                <p className="prize-callout-desc">
-                  Each regional chapter winner takes home cash on stage and advances to the National Finals in Mumbai with ₹2,00,000 grand trophy.
-                </p>
-              </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '32px', alignItems: 'start' }}>
+            {/* Guidelines */}
+            <div style={{ background: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '24px' }}>
+              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '22px', color: '#FFF', marginBottom: '16px' }}>
+                AUDITION GUIDELINES
+              </h3>
+              <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '13px', color: 'var(--gray)', lineHeight: '1.5' }}>
+                <li>
+                  <strong style={{ color: '#FFF', display: 'block' }}>1. Original Material Only:</strong>
+                  Plagiarized jokes or copied sets result in immediate disqualification.
+                </li>
+                <li>
+                  <strong style={{ color: '#FFF', display: 'block' }}>2. 2–5 Minute Video Set:</strong>
+                  Upload a clear performance set on YouTube or Google Drive (public access).
+                </li>
+                <li>
+                  <strong style={{ color: '#FFF', display: 'block' }}>3. Free Auditions:</strong>
+                  We never charge comedians to step under the spotlight.
+                </li>
+                <li>
+                  <strong style={{ color: '#FFF', display: 'block' }}>4. Spot Cash Purse:</strong>
+                  Nightly winner takes home ₹15,000 cash on stage and advances to the National Finals.
+                </li>
+              </ul>
             </div>
 
-            {/* Right Column: Contestant Form */}
-            <div className="apply-form-main">
+            {/* Application Form */}
+            <div>
               <ContestantForm />
             </div>
           </div>

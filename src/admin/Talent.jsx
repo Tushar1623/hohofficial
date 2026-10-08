@@ -1,137 +1,113 @@
-import React, { useState } from 'react';
-import { useApp } from '../context/AppContext';
+import React, { useState, useEffect } from 'react';
+import { api } from '../services/api';
 
 export const TalentManagement = () => {
-  const { talent, setTalent, showToast } = useApp();
+  const [talent, setTalent] = useState([]);
+  const [form, setForm] = useState({ name: '', city: '', category: 'Observational Storytelling', score: '9.0 dB', quote: '' });
+  const [loading, setLoading] = useState(true);
 
-  const [newComic, setNewComic] = useState({
-    name: '',
-    city: '',
-    zone: 'EAST • KOLKATA',
-    category: 'Observational Storytelling',
-    score: '9.0/10',
-    statusLabel: 'QUALIFIED FINALS',
-    quote: '',
-    photo: 'https://lh3.googleusercontent.com/aida-public/AB6AXuB4VfI6G1e8_y231v4-4rJ6kXh5T4r5Hq2-G8F-qT1P7U9L_k2J4-H9kF2-1r7X4r8V-1s4kG2H-6F4kF2H-6F4kF2H-6F4kF2H-6F4kF2H-6F4kF2H-6F4kF2H-6F4kF2H-6F4kF2H-6F4kF2H-6F4kF2H-6F4kF2H-6F4kF2H-6F4kF2H-6F4kF2H-6F4'
-  });
+  useEffect(() => {
+    load();
+  }, []);
 
-  const handleAdd = (e) => {
-    e.preventDefault();
-    if (!newComic.name || !newComic.city) {
-      alert('Name and city are required.');
-      return;
-    }
-    const created = {
-      ...newComic,
-      id: `talent-${Date.now()}`,
-      rank: `#0${talent.length + 1}`
-    };
-    setTalent([...talent, created]);
-    showToast(`Added ${created.name} to talent roster!`, 'success');
-    setNewComic({
-      name: '',
-      city: '',
-      zone: 'EAST • KOLKATA',
-      category: 'Observational Storytelling',
-      score: '9.0/10',
-      statusLabel: 'QUALIFIED FINALS',
-      quote: '',
-      photo: 'https://lh3.googleusercontent.com/aida-public/AB6AXuB4VfI6G1e8_y231v4-4rJ6kXh5T4r5Hq2-G8F-qT1P7U9L_k2J4-H9kF2-1r7X4r8V-1s4kG2H-6F4kF2H-6F4kF2H-6F4kF2H-6F4kF2H-6F4kF2H-6F4kF2H-6F4kF2H-6F4kF2H-6F4kF2H-6F4kF2H-6F4kF2H-6F4kF2H-6F4kF2H-6F4'
-    });
+  const load = async () => {
+    const list = await api.getTalent();
+    setTalent(list);
+    setLoading(false);
   };
 
-  const handleDelete = (id) => {
-    setTalent(talent.filter((t) => t.id !== id));
-    showToast('Comic removed from roster', 'info');
+  const handleAdd = async (e) => {
+    e.preventDefault();
+    if (!form.name || !form.city) return;
+
+    const updated = [
+      ...talent,
+      {
+        ...form,
+        id: `talent-${Date.now()}`,
+        rank: `#0${talent.length + 1}`,
+        zone: form.city.toUpperCase()
+      }
+    ];
+    await api.saveTalent(updated);
+    setForm({ name: '', city: '', category: 'Observational Storytelling', score: '9.0 dB', quote: '' });
+    load();
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm('Remove comedian?')) {
+      const updated = talent.filter((t) => t.id !== id);
+      await api.saveTalent(updated);
+      load();
+    }
   };
 
   return (
-    <div className="admin-talent-view">
+    <div>
       <div className="card-section">
         <div className="card-section-head">
           <div>
-            <h3>ADD QUALIFIED COMEDIAN TO ROSTER</h3>
-            <p>Spotlight contestants who won regional qualifiers</p>
+            <h3>ADD QUALIFIED COMEDIAN</h3>
+            <p style={{ fontSize: '13px', color: 'var(--gray)' }}>Spotlight contestants who qualified for finals</p>
           </div>
         </div>
 
-        <form onSubmit={handleAdd} className="admin-form-grid">
+        <form onSubmit={handleAdd} className="form-row form-row-2">
           <div className="form-group">
-            <label className="form-label">STAGE / ARTIST NAME</label>
+            <label className="form-label">Comedian Name *</label>
             <input
               type="text"
-              value={newComic.name}
-              onChange={(e) => setNewComic({ ...newComic, name: e.target.value })}
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
               className="form-input"
               required
             />
           </div>
 
           <div className="form-group">
-            <label className="form-label">CITY</label>
+            <label className="form-label">City *</label>
             <input
               type="text"
-              value={newComic.city}
-              onChange={(e) => setNewComic({ ...newComic, city: e.target.value })}
+              value={form.city}
+              onChange={(e) => setForm({ ...form, city: e.target.value })}
               className="form-input"
               required
             />
           </div>
 
           <div className="form-group">
-            <label className="form-label">REGIONAL ZONE</label>
+            <label className="form-label">Comedy Genre</label>
             <input
               type="text"
-              value={newComic.zone}
-              onChange={(e) => setNewComic({ ...newComic, zone: e.target.value })}
+              value={form.category}
+              onChange={(e) => setForm({ ...form, category: e.target.value })}
               className="form-input"
             />
           </div>
 
           <div className="form-group">
-            <label className="form-label">COMEDY GENRE</label>
+            <label className="form-label">Decibel Score</label>
             <input
               type="text"
-              value={newComic.category}
-              onChange={(e) => setNewComic({ ...newComic, category: e.target.value })}
+              value={form.score}
+              onChange={(e) => setForm({ ...form, score: e.target.value })}
               className="form-input"
             />
           </div>
 
-          <div className="form-group">
-            <label className="form-label">JURY / DECIBEL SCORE</label>
+          <div className="form-group" style={{ gridColumn: 'span 2' }}>
+            <label className="form-label">Editorial Quote / Notes</label>
             <input
               type="text"
-              value={newComic.score}
-              onChange={(e) => setNewComic({ ...newComic, score: e.target.value })}
+              value={form.quote}
+              onChange={(e) => setForm({ ...form, quote: e.target.value })}
               className="form-input"
             />
           </div>
 
-          <div className="form-group">
-            <label className="form-label">QUALIFICATION BADGE</label>
-            <input
-              type="text"
-              value={newComic.statusLabel}
-              onChange={(e) => setNewComic({ ...newComic, statusLabel: e.target.value })}
-              className="form-input"
-            />
-          </div>
-
-          <div className="form-group form-full">
-            <label className="form-label">EDITORIAL QUOTE / BIO</label>
-            <textarea
-              rows="2"
-              value={newComic.quote}
-              onChange={(e) => setNewComic({ ...newComic, quote: e.target.value })}
-              className="form-textarea"
-            />
-          </div>
-
-          <div className="form-group form-full">
-            <button type="submit" className="btn-action-primary">
-              <span className="material-symbols-outlined">add</span>
-              <span>ADD COMEDIAN TO ROSTER</span>
+          <div style={{ gridColumn: 'span 2' }}>
+            <button type="submit" className="btn btn-primary btn-sm">
+              Add Comedian
             </button>
           </div>
         </form>
@@ -140,51 +116,49 @@ export const TalentManagement = () => {
       <div className="card-section">
         <div className="card-section-head">
           <div>
-            <h3>CURRENT TALENT LEADERBOARD ({talent.length})</h3>
+            <h3>TALENT LEADERBOARD ({talent.length})</h3>
           </div>
         </div>
 
-        <div className="table-responsive-container">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>RANK</th>
-                <th>NAME</th>
-                <th>CITY / ZONE</th>
-                <th>GENRE</th>
-                <th>SCORE</th>
-                <th>STATUS</th>
-                <th>ACTIONS</th>
-              </tr>
-            </thead>
-            <tbody>
-              {talent.map((c) => (
-                <tr key={c.id}>
-                  <td style={{ fontFamily: 'var(--font-mono)', fontWeight: '700', color: '#FF8A00' }}>
-                    {c.rank}
-                  </td>
-                  <td style={{ fontWeight: '600' }}>{c.name}</td>
-                  <td>{c.zone || c.city}</td>
-                  <td>{c.category}</td>
-                  <td style={{ color: '#FFB000' }}>{c.score}</td>
-                  <td>
-                    <span className="status-badge status-approved">{c.statusLabel}</span>
-                  </td>
-                  <td>
-                    <button
-                      type="button"
-                      className="btn-icon-action btn-icon-danger"
-                      onClick={() => handleDelete(c.id)}
-                      title="Remove comedian"
-                    >
-                      <span className="material-symbols-outlined">delete</span>
-                    </button>
-                  </td>
+        {loading ? (
+          <div style={{ padding: '20px', color: 'var(--gray)' }}>Loading...</div>
+        ) : (
+          <div className="table-responsive">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>RANK</th>
+                  <th>NAME</th>
+                  <th>CITY</th>
+                  <th>GENRE</th>
+                  <th>SCORE</th>
+                  <th>ACTIONS</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {talent.map((c) => (
+                  <tr key={c.id}>
+                    <td><strong style={{ color: 'var(--orange)' }}>{c.rank}</strong></td>
+                    <td><strong style={{ color: '#FFF' }}>{c.name}</strong></td>
+                    <td>{c.city}</td>
+                    <td>{c.category}</td>
+                    <td><span style={{ color: 'var(--yellow)' }}>{c.score}</span></td>
+                    <td>
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        style={{ color: '#ff6b6b', padding: '4px 8px', minHeight: '30px' }}
+                        onClick={() => handleDelete(c.id)}
+                      >
+                        Remove
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Navbar } from '../components/Navbar/Navbar';
-import { Footer } from '../components/Footer/Footer';
+import { Navbar } from '../components/Navbar';
+import { Footer } from '../components/Footer';
 
 export const About = () => {
   const [openFaq, setOpenFaq] = useState(null);
@@ -29,133 +29,96 @@ export const About = () => {
     },
     {
       q: 'How do audiences buy tickets?',
-      a: 'Tickets can be reserved directly on our website by clicking "GET TICKETS" on any event page. Digital passes with QR entry codes are delivered instantly.'
+      a: 'Tickets can be reserved directly on our website by clicking "GET TICKETS" on any event page or via WhatsApp support.'
     }
   ];
 
   return (
-    <div className="page-about-root">
+    <div>
       <Navbar />
 
-      <main className="section page-main-content">
+      <main className="section">
         <div className="container">
-          {/* Header Banner */}
-          <div className="page-banner text-center">
-            <div className="section-badge">
-              <span className="material-symbols-outlined">auto_awesome</span>
-              <span>THE HOH REVOLUTION</span>
-            </div>
-            <h1 className="page-title">
+          <div className="section-head">
+            <span className="section-badge">THE HOH MANIFESTO</span>
+            <h1 className="section-title">
               ABOUT <span className="text-gradient">HOUSE OF HUMOUR</span>
             </h1>
-            <p className="page-subtitle mx-auto">
+            <p className="section-subtitle">
               Built by stand-up comedians, for stand-up comedians. Uncensored, unfiltered, and unapologetically funny.
             </p>
           </div>
 
-          {/* Official Brand Showcase */}
-          <div className="about-brand-showcase">
-            <div className="about-brand-logo-card">
+          {/* Brand Showcase */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '32px', alignItems: 'center', marginBottom: '56px', background: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: 'clamp(24px, 4vw, 40px)' }}>
+            <div style={{ textAlign: 'center' }}>
               <img
                 src="/HoH.jpg"
-                alt="House of Humour Official Brand Identity"
-                className="about-official-logo"
-                width="160"
-                height="160"
+                alt="House of Humour Brand"
+                width="140"
+                height="140"
+                style={{ margin: '0 auto 12px auto' }}
               />
-              <span className="about-brand-tag">OFFICIAL BRAND IDENTITY</span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--yellow)', letterSpacing: '0.12em' }}>
+                OFFICIAL BRAND IDENTITY
+              </span>
             </div>
 
-            <div className="about-brand-copy">
-              <h2 className="about-h2">ONE STAGE. YOUR JOKE. INDIA’S NEXT COMEDY STAR.</h2>
-              <p>
-                Founded in 2024, House of Humour was created to solve a glaring problem in the Indian comedy circuit: talented writers performing in small basements with no path to high-production broadcast or fair compensation.
+            <div>
+              <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(24px, 3.5vw, 36px)', color: '#FFF', lineHeight: '1.1', marginBottom: '12px' }}>
+                ONE STAGE. YOUR JOKE. INDIA’S NEXT COMEDY STAR.
+              </h2>
+              <p style={{ fontSize: '14px', color: 'var(--gray)', lineHeight: '1.6', marginBottom: '12px' }}>
+                House of Humour was created to solve a glaring problem in the Indian comedy circuit: talented writers performing in small basements with no path to high-production broadcast or fair compensation.
               </p>
-              <p>
-                We produce theatrical, broadcast-grade club showcases that treat comedy as the elite art form it is. We equip every chapter with Shure broadcast microphones, cinematic multi-cam lighting, and paying audiences who came to laugh.
+              <p style={{ fontSize: '14px', color: 'var(--gray)', lineHeight: '1.6' }}>
+                We produce theatrical, broadcast-grade club showcases that treat comedy as an elite art form. We equip every chapter with broadcast microphones, cinematic multi-cam lighting, and paying audiences who came to laugh.
               </p>
             </div>
           </div>
 
-          {/* 4 Pillars Grid */}
-          <div className="about-pillars-grid">
-            <div className="pillar-card">
-              <span className="pillar-num">01</span>
-              <h3 className="pillar-title">RAW FREEDOM</h3>
-              <p className="pillar-desc">
-                No censorship or corporate sanitization. Comedians have total creative autonomy to test bold punchlines.
-              </p>
-            </div>
-
-            <div className="pillar-card">
-              <span className="pillar-num">02</span>
-              <h3 className="pillar-title">REAL CROWDS</h3>
-              <p className="pillar-desc">
-                Audiences who actually buy passes to listen, critique, and roar. Authentic rooms that make comics sharper.
-              </p>
-            </div>
-
-            <div className="pillar-card">
-              <span className="pillar-num">03</span>
-              <h3 className="pillar-title">DECIBEL METERS</h3>
-              <p className="pillar-desc">
-                Scientific, objective judging based on physical acoustic laughter volume, eliminating judge bias.
-              </p>
-            </div>
-
-            <div className="pillar-card">
-              <span className="pillar-num">04</span>
-              <h3 className="pillar-title">INSTANT CASH</h3>
-              <p className="pillar-desc">
-                Immediate ₹15,000 spot purses handed over directly on stage. We believe comedians deserve to get paid.
-              </p>
-            </div>
+          {/* 4 Pillars */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '56px' }}>
+            {[
+              { num: '01', title: 'RAW FREEDOM', desc: 'No censorship. Comedians have creative autonomy to test bold punchlines.' },
+              { num: '02', title: 'REAL CROWDS', desc: 'Audiences who actually buy passes to listen, critique, and roar.' },
+              { num: '03', title: 'DECIBEL METERS', desc: 'Scientific judging based on physical acoustic laughter volume.' },
+              { num: '04', title: 'INSTANT CASH', desc: 'Immediate ₹15,000 spot purses handed over directly on stage.' }
+            ].map((p) => (
+              <div key={p.num} style={{ background: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '24px' }}>
+                <span style={{ fontFamily: 'var(--font-display)', fontSize: '32px', color: 'var(--orange)', display: 'block', marginBottom: '6px' }}>{p.num}</span>
+                <h3 style={{ fontFamily: 'var(--font-mono)', fontSize: '14px', color: '#FFF', marginBottom: '8px' }}>{p.title}</h3>
+                <p style={{ fontSize: '13px', color: 'var(--gray)', lineHeight: '1.5' }}>{p.desc}</p>
+              </div>
+            ))}
           </div>
 
           {/* FAQ Accordion */}
-          <div className="faq-section-wrapper">
-            <div className="section-head text-center">
-              <div className="section-badge">
-                <span className="material-symbols-outlined">help</span>
-                <span>QUESTIONS &amp; ANSWERS</span>
-              </div>
-              <h2 className="section-title">FREQUENTLY ASKED QUESTIONS</h2>
-            </div>
+          <div style={{ maxWidth: '720px', margin: '0 auto' }}>
+            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '28px', color: '#FFF', textAlign: 'center', marginBottom: '24px' }}>
+              FREQUENTLY ASKED QUESTIONS
+            </h2>
 
-            <div className="faq-accordion-list">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {faqs.map((faq, idx) => (
-                <div key={idx} className={`faq-item ${openFaq === idx ? 'is-open' : ''}`}>
+                <div key={idx} style={{ background: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', overflow: 'hidden' }}>
                   <button
                     type="button"
-                    className="faq-question-btn"
                     onClick={() => toggleFaq(idx)}
-                    aria-expanded={openFaq === idx}
+                    style={{ width: '100%', padding: '16px 20px', background: 'transparent', border: 'none', color: '#FFF', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', textAlign: 'left', fontWeight: '600' }}
                   >
                     <span>{faq.q}</span>
-                    <span className="material-symbols-outlined faq-arrow">
+                    <span className="material-symbols-outlined" style={{ fontSize: '20px', color: 'var(--yellow)' }}>
                       {openFaq === idx ? 'remove' : 'add'}
                     </span>
                   </button>
                   {openFaq === idx && (
-                    <div className="faq-answer-pane">
-                      <p>{faq.a}</p>
+                    <div style={{ padding: '0 20px 16px 20px', fontSize: '14px', color: 'var(--gray)', lineHeight: '1.6' }}>
+                      {faq.a}
                     </div>
                   )}
                 </div>
               ))}
-            </div>
-          </div>
-
-          {/* Bottom CTA */}
-          <div className="about-bottom-cta">
-            <h2>READY TO ATTEND OR TAKE THE STAGE?</h2>
-            <div className="about-btn-row">
-              <Link to="/events" className="btn btn-primary btn-lg">
-                <span>EXPLORE TOUR EVENTS</span>
-              </Link>
-              <Link to="/apply" className="btn btn-secondary btn-lg">
-                <span>SUBMIT AN AUDITION</span>
-              </Link>
             </div>
           </div>
         </div>

@@ -1,102 +1,86 @@
-import React, { useState } from 'react';
-import { useApp } from '../context/AppContext';
+import React, { useState, useEffect } from 'react';
+import { api } from '../services/api';
 
 export const GuestManagement = () => {
-  const { guests, setGuests, showToast } = useApp();
+  const [guests, setGuests] = useState([]);
+  const [form, setForm] = useState({ name: '', role: '', description: '' });
+  const [loading, setLoading] = useState(true);
 
-  const [newGuest, setNewGuest] = useState({
-    name: '',
-    role: '',
-    tag: 'JURY HEAD',
-    description: '',
-    photo: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDyTUWi8ys-8QC7yj-k01pMq4VEb41UgONb7IAe8Z67ZJOIqKtBL978eKAG-2taKUHZDanW4X6wuv7cKVBOOcaxncW2WG64DNO_MFACahph1GTFFfqCOuAMpSmbRrEyzV2K3X2bKmQbdFLhU2oyF2Uo5oewcBYegmtS3iffLOQ4kObRSLNcnH0UwUfPs_kq5EyGfinV7SOKfnty_VJMXsh8-S7xEdL7IGRCv2Dsi4hK'
-  });
+  useEffect(() => {
+    load();
+  }, []);
 
-  const handleAdd = (e) => {
-    e.preventDefault();
-    if (!newGuest.name || !newGuest.role) {
-      alert('Name and role are required.');
-      return;
-    }
-    const created = {
-      ...newGuest,
-      id: `jury-${Date.now()}`
-    };
-    setGuests([...guests, created]);
-    showToast(`Added ${created.name} to jury panel!`, 'success');
-    setNewGuest({
-      name: '',
-      role: '',
-      tag: 'JURY HEAD',
-      description: '',
-      photo: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDyTUWi8ys-8QC7yj-k01pMq4VEb41UgONb7IAe8Z67ZJOIqKtBL978eKAG-2taKUHZDanW4X6wuv7cKVBOOcaxncW2WG64DNO_MFACahph1GTFFfqCOuAMpSmbRrEyzV2K3X2bKmQbdFLhU2oyF2Uo5oewcBYegmtS3iffLOQ4kObRSLNcnH0UwUfPs_kq5EyGfinV7SOKfnty_VJMXsh8-S7xEdL7IGRCv2Dsi4hK'
-    });
+  const load = async () => {
+    const list = await api.getGuests();
+    setGuests(list);
+    setLoading(false);
   };
 
-  const handleDelete = (id) => {
-    setGuests(guests.filter((g) => g.id !== id));
-    showToast('Jury member removed', 'info');
+  const handleAdd = async (e) => {
+    e.preventDefault();
+    if (!form.name || !form.role) return;
+
+    const updated = [...guests, { ...form, id: `jury-${Date.now()}` }];
+    await api.saveGuests(updated);
+    setForm({ name: '', role: '', description: '' });
+    load();
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm('Remove jury member?')) {
+      const updated = guests.filter((g) => g.id !== id);
+      await api.saveGuests(updated);
+      load();
+    }
   };
 
   return (
-    <div className="admin-guests-view">
+    <div>
       <div className="card-section">
         <div className="card-section-head">
           <div>
-            <h3>ADD INDUSTRY JURY OR GUEST HEADLINER</h3>
-            <p>Industry evaluators who provide feedback on tour sets</p>
+            <h3>ADD JURY / GUEST HEADLINER</h3>
+            <p style={{ fontSize: '13px', color: 'var(--gray)' }}>Industry evaluators who provide feedback on tour sets</p>
           </div>
         </div>
 
-        <form onSubmit={handleAdd} className="admin-form-grid">
+        <form onSubmit={handleAdd} className="form-row form-row-2">
           <div className="form-group">
-            <label className="form-label">FULL NAME</label>
+            <label className="form-label">Full Name *</label>
             <input
               type="text"
-              value={newGuest.name}
-              onChange={(e) => setNewGuest({ ...newGuest, name: e.target.value })}
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
               className="form-input"
               required
             />
           </div>
 
           <div className="form-group">
-            <label className="form-label">TITLE / ROLE</label>
+            <label className="form-label">Role / Title *</label>
             <input
               type="text"
-              placeholder="e.g. Head of Jury, OTT Producer"
-              value={newGuest.role}
-              onChange={(e) => setNewGuest({ ...newGuest, role: e.target.value })}
+              placeholder="e.g. Head of Jury"
+              value={form.role}
+              onChange={(e) => setForm({ ...form, role: e.target.value })}
               className="form-input"
               required
             />
           </div>
 
-          <div className="form-group">
-            <label className="form-label">BADGE TAG</label>
+          <div className="form-group" style={{ gridColumn: 'span 2' }}>
+            <label className="form-label">Description / Bio</label>
             <input
               type="text"
-              placeholder="e.g. 14 YRS TOURING"
-              value={newGuest.tag}
-              onChange={(e) => setNewGuest({ ...newGuest, tag: e.target.value })}
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
               className="form-input"
             />
           </div>
 
-          <div className="form-group form-full">
-            <label className="form-label">BIO / DESCRIPTION</label>
-            <textarea
-              rows="2"
-              value={newGuest.description}
-              onChange={(e) => setNewGuest({ ...newGuest, description: e.target.value })}
-              className="form-textarea"
-            />
-          </div>
-
-          <div className="form-group form-full">
-            <button type="submit" className="btn-action-primary">
-              <span className="material-symbols-outlined">add</span>
-              <span>ADD TO JURY PANEL</span>
+          <div style={{ gridColumn: 'span 2' }}>
+            <button type="submit" className="btn btn-primary btn-sm">
+              Add Jury Member
             </button>
           </div>
         </form>
@@ -109,49 +93,41 @@ export const GuestManagement = () => {
           </div>
         </div>
 
-        <div className="table-responsive-container">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>PHOTO</th>
-                <th>NAME</th>
-                <th>ROLE</th>
-                <th>TAG</th>
-                <th>DESCRIPTION</th>
-                <th>ACTIONS</th>
-              </tr>
-            </thead>
-            <tbody>
-              {guests.map((g) => (
-                <tr key={g.id}>
-                  <td>
-                    <img
-                      src={g.photo}
-                      alt={g.name}
-                      style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }}
-                    />
-                  </td>
-                  <td style={{ fontWeight: '600' }}>{g.name}</td>
-                  <td>{g.role}</td>
-                  <td>
-                    <span className="status-badge status-shortlisted">{g.tag}</span>
-                  </td>
-                  <td style={{ fontSize: '12px', color: '#888', maxWidth: '300px' }}>{g.description}</td>
-                  <td>
-                    <button
-                      type="button"
-                      className="btn-icon-action btn-icon-danger"
-                      onClick={() => handleDelete(g.id)}
-                      title="Remove judge"
-                    >
-                      <span className="material-symbols-outlined">delete</span>
-                    </button>
-                  </td>
+        {loading ? (
+          <div style={{ padding: '20px', color: 'var(--gray)' }}>Loading...</div>
+        ) : (
+          <div className="table-responsive">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>NAME</th>
+                  <th>ROLE</th>
+                  <th>DESCRIPTION</th>
+                  <th>ACTIONS</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {guests.map((g) => (
+                  <tr key={g.id}>
+                    <td><strong style={{ color: '#FFF' }}>{g.name}</strong></td>
+                    <td><span style={{ color: 'var(--yellow)' }}>{g.role}</span></td>
+                    <td style={{ fontSize: '12px', color: 'var(--gray)' }}>{g.description}</td>
+                    <td>
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        style={{ color: '#ff6b6b', padding: '4px 8px', minHeight: '30px' }}
+                        onClick={() => handleDelete(g.id)}
+                      >
+                        Remove
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );

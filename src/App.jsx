@@ -1,8 +1,7 @@
-import React, { useEffect } from 'react';
+import React, { Suspense, lazy, useEffect } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
-import { AppProvider } from './context/AppContext';
 
-// Public Pages
+// Public Pages (Direct Imports for Instant First Load)
 import { Home } from './pages/Home';
 import { Events } from './pages/Events';
 import { EventDetails } from './pages/EventDetails';
@@ -12,21 +11,16 @@ import { Talent } from './pages/Talent';
 import { About } from './pages/About';
 import { NotFound } from './pages/NotFound';
 
-// Admin Components
-import { AdminLayout } from './admin/AdminLayout';
-import { Dashboard } from './admin/Dashboard';
-import { EventManagement } from './admin/Events';
-import { ApplicationManagement } from './admin/Applications';
-import { VideoManagement } from './admin/Videos';
-import { TalentManagement } from './admin/Talent';
-import { GuestManagement } from './admin/Guests';
-import { SponsorManagement } from './admin/Sponsors';
-import { Settings } from './admin/Settings';
-
-// Global Modals & Notifications
-import { TicketModal } from './components/Modal/TicketModal';
-import { VideoModal } from './components/VideoModal/VideoModal';
-import { Toast } from './components/Toast/Toast';
+// Admin Routes (Lazy-loaded for Performance - Phase 11)
+const AdminLayout = lazy(() => import('./admin/AdminLayout').then(m => ({ default: m.AdminLayout })));
+const Dashboard = lazy(() => import('./admin/Dashboard').then(m => ({ default: m.Dashboard })));
+const EventManagement = lazy(() => import('./admin/Events').then(m => ({ default: m.EventManagement })));
+const ApplicationManagement = lazy(() => import('./admin/Applications').then(m => ({ default: m.ApplicationManagement })));
+const VideoManagement = lazy(() => import('./admin/Videos').then(m => ({ default: m.VideoManagement })));
+const TalentManagement = lazy(() => import('./admin/Talent').then(m => ({ default: m.TalentManagement })));
+const GuestManagement = lazy(() => import('./admin/Guests').then(m => ({ default: m.GuestManagement })));
+const SponsorManagement = lazy(() => import('./admin/Sponsors').then(m => ({ default: m.SponsorManagement })));
+const Settings = lazy(() => import('./admin/Settings').then(m => ({ default: m.Settings })));
 
 // Scroll to top helper
 const ScrollToTop = () => {
@@ -39,11 +33,8 @@ const ScrollToTop = () => {
 
 export const App = () => {
   return (
-    <AppProvider>
+    <>
       <ScrollToTop />
-      {/* Background grain texture */}
-      <div className="grain-overlay" aria-hidden="true" />
-
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<Home />} />
@@ -54,8 +45,15 @@ export const App = () => {
         <Route path="/talent" element={<Talent />} />
         <Route path="/about" element={<About />} />
 
-        {/* Admin Nested Routes */}
-        <Route path="/admin" element={<AdminLayout />}>
+        {/* Admin Protected Routes (Code-split) */}
+        <Route
+          path="/admin"
+          element={
+            <Suspense fallback={<div style={{ padding: '60px', textAlign: 'center', color: 'var(--gray)' }}>Loading Admin Console...</div>}>
+              <AdminLayout />
+            </Suspense>
+          }
+        >
           <Route index element={<Dashboard />} />
           <Route path="events" element={<EventManagement />} />
           <Route path="applications" element={<ApplicationManagement />} />
@@ -69,12 +67,7 @@ export const App = () => {
         {/* 404 Fallback */}
         <Route path="*" element={<NotFound />} />
       </Routes>
-
-      {/* Global Modals & Toasts */}
-      <TicketModal />
-      <VideoModal />
-      <Toast />
-    </AppProvider>
+    </>
   );
 };
 

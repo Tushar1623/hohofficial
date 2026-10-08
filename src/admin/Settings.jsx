@@ -1,137 +1,109 @@
-import React, { useState } from 'react';
-import { useApp } from '../context/AppContext';
+import React, { useState, useEffect } from 'react';
+import { api } from '../services/api';
 
 export const Settings = () => {
-  const { settings, updateSettings, showToast } = useApp();
-
-  const [form, setForm] = useState({
-    siteName: settings?.siteName || 'House of Humour',
-    tagline: settings?.tagline || "India's Biggest Stand-Up Comedy Talent Hunt",
-    contactEmail: settings?.contactEmail || 'auditions@houseofhumour.in',
-    supportPhone: settings?.supportPhone || '+91 98301 22345',
-    circuitCities: settings?.circuitCities || 'Kolkata, Mumbai, Delhi NCR, Bengaluru, Pune',
-    auditionStatus: settings?.auditionStatus || 'OPEN'
+  const [settings, setSettings] = useState({
+    siteName: 'House of Humour',
+    contactEmail: 'auditions@houseofhumour.in',
+    supportPhone: '+91 98301 22345',
+    circuitCities: 'Kolkata, Mumbai, Delhi NCR, Bengaluru, Pune',
+    auditionStatus: 'OPEN'
   });
+  const [saved, setSaved] = useState(false);
 
-  const [saving, setSaving] = useState(false);
+  useEffect(() => {
+    api.getSettings().then((data) => {
+      if (data) setSettings(data);
+    });
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setSaving(true);
-    try {
-      await updateSettings(form);
-    } finally {
-      setSaving(false);
-    }
+    await api.saveSettings(settings);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 3000);
   };
 
   return (
-    <div className="admin-settings-view">
+    <div>
       <div className="card-section">
         <div className="card-section-head">
           <div>
-            <h3>GLOBAL SHOWCASE &amp; PORTAL CONFIGURATION</h3>
-            <p>Manage tour circuits, contact endpoints, and registration status.</p>
+            <h3>SHOWCASE &amp; CIRCUIT SETTINGS</h3>
+            <p style={{ fontSize: '13px', color: 'var(--gray)' }}>Manage contact channels, active cities, and audition state</p>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="admin-form-grid">
+        {saved && (
+          <div style={{ background: 'rgba(34, 197, 94, 0.2)', border: '1px solid #22c55e', color: '#22c55e', padding: '10px 14px', borderRadius: 'var(--radius)', marginBottom: '16px', fontSize: '13px' }}>
+            Settings saved successfully!
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="form-row form-row-2">
           <div className="form-group">
-            <label className="form-label">ORGANIZATION / BRAND NAME</label>
+            <label className="form-label">Brand Name</label>
             <input
               type="text"
-              value={form.siteName}
-              onChange={(e) => setForm({ ...form, siteName: e.target.value })}
+              value={settings.siteName}
+              onChange={(e) => setSettings({ ...settings, siteName: e.target.value })}
               className="form-input"
               required
             />
           </div>
 
           <div className="form-group">
-            <label className="form-label">OFFICIAL TAGLINE</label>
-            <input
-              type="text"
-              value={form.tagline}
-              onChange={(e) => setForm({ ...form, tagline: e.target.value })}
-              className="form-input"
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">EDITORIAL INBOX EMAIL</label>
+            <label className="form-label">Audition Inbox Email</label>
             <input
               type="email"
-              value={form.contactEmail}
-              onChange={(e) => setForm({ ...form, contactEmail: e.target.value })}
+              value={settings.contactEmail}
+              onChange={(e) => setSettings({ ...settings, contactEmail: e.target.value })}
               className="form-input"
               required
             />
           </div>
 
           <div className="form-group">
-            <label className="form-label">STAGE MANAGER PHONE</label>
+            <label className="form-label">Tour Manager Phone</label>
             <input
               type="tel"
-              value={form.supportPhone}
-              onChange={(e) => setForm({ ...form, supportPhone: e.target.value })}
-              className="form-input"
-              required
-            />
-          </div>
-
-          <div className="form-group form-full">
-            <label className="form-label">ACTIVE CIRCUIT CITIES</label>
-            <input
-              type="text"
-              value={form.circuitCities}
-              onChange={(e) => setForm({ ...form, circuitCities: e.target.value })}
+              value={settings.supportPhone}
+              onChange={(e) => setSettings({ ...settings, supportPhone: e.target.value })}
               className="form-input"
               required
             />
           </div>
 
           <div className="form-group">
-            <label className="form-label">AUDITION REGISTRATION PORTAL STATUS</label>
+            <label className="form-label">Audition Portal Status</label>
             <select
-              value={form.auditionStatus}
-              onChange={(e) => setForm({ ...form, auditionStatus: e.target.value })}
+              value={settings.auditionStatus}
+              onChange={(e) => setSettings({ ...settings, auditionStatus: e.target.value })}
               className="form-select"
             >
               <option value="OPEN">OPEN (Accepting Applications)</option>
               <option value="WAITLIST">WAITLIST ONLY</option>
-              <option value="CLOSED">CLOSED (Auditions Suspended)</option>
+              <option value="CLOSED">CLOSED</option>
             </select>
           </div>
 
-          <div className="form-group form-full">
-            <button
-              type="submit"
-              className="btn-action-primary"
-              disabled={saving}
-            >
-              <span className="material-symbols-outlined">save</span>
-              <span>{saving ? 'SAVING CONFIGURATION...' : 'SAVE GLOBAL SETTINGS'}</span>
+          <div className="form-group" style={{ gridColumn: 'span 2' }}>
+            <label className="form-label">Active Tour Cities</label>
+            <input
+              type="text"
+              value={settings.circuitCities}
+              onChange={(e) => setSettings({ ...settings, circuitCities: e.target.value })}
+              className="form-input"
+              required
+            />
+          </div>
+
+          <div style={{ gridColumn: 'span 2' }}>
+            <button type="submit" className="btn btn-primary btn-sm">
+              Save Settings
             </button>
           </div>
         </form>
-      </div>
-
-      <div className="card-section">
-        <div className="card-section-head">
-          <div>
-            <h3>DEVELOPER &amp; BACKEND INTEGRATION READINESS</h3>
-            <p>Phase 3 &amp; 4 Architecture Specifications</p>
-          </div>
-        </div>
-        <div style={{ background: '#090909', padding: '16px', borderRadius: '6px', fontSize: '13px', lineHeight: '1.7', color: '#AAA' }}>
-          <p>
-            <strong style={{ color: '#FFF' }}>Current Mode:</strong> React Service Abstraction via <code>src/services/api.js</code> wrapping <code>src/services/storage.js</code>.
-          </p>
-          <p>
-            <strong style={{ color: '#FFF' }}>Express API Endpoints:</strong> Ready for <code>/api/events</code>, <code>/api/applications</code>, <code>/api/videos</code>, <code>/api/talent</code>, <code>/api/settings</code>. Zero component rewrites will be required when connecting to Node/Express/MongoDB in Phase 3.
-          </p>
-        </div>
       </div>
     </div>
   );

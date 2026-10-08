@@ -1,84 +1,95 @@
-import React, { useState } from 'react';
-import { Navbar } from '../components/Navbar/Navbar';
-import { Footer } from '../components/Footer/Footer';
-import { FeaturedVideo } from '../components/FeaturedVideo/FeaturedVideo';
-import { VideoGrid } from '../components/VideoGrid/VideoGrid';
-import { useApp } from '../context/AppContext';
+import React, { useState, useEffect } from 'react';
+import { Navbar } from '../components/Navbar';
+import { Footer } from '../components/Footer';
+import { VideoCard } from '../components/VideoCard';
+import { Modal } from '../components/Modal';
+import { api } from '../services/api';
 
 export const Watch = () => {
-  const { videos } = useApp();
+  const [videos, setVideos] = useState([]);
   const [selectedTag, setSelectedTag] = useState('ALL');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [activeVideo, setActiveVideo] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const tags = ['ALL', 'CROWD WORK', 'DARK HUMOR', 'DEADPAN', 'OBSERVATIONAL', 'ROAST'];
+  useEffect(() => {
+    let mounted = true;
+    api.getVideos().then((data) => {
+      if (mounted) {
+        setVideos(data);
+        setLoading(false);
+      }
+    });
+    return () => { mounted = false; };
+  }, []);
 
-  const filteredVideos = videos.filter((vid) => {
-    const matchesTag = selectedTag === 'ALL' || (vid.tag && vid.tag.toUpperCase() === selectedTag);
-    const matchesSearch =
-      searchQuery.trim() === '' ||
-      vid.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (vid.category && vid.category.toLowerCase().includes(searchQuery.toLowerCase()));
-    return matchesTag && matchesSearch;
-  });
+  const tags = ['ALL', 'CROWD WORK', 'SATIRE', 'DEADPAN'];
+
+  const filtered = selectedTag === 'ALL'
+    ? videos
+    : videos.filter((v) => v.tag?.toUpperCase() === selectedTag);
 
   return (
-    <div className="page-watch-root">
+    <div>
       <Navbar />
 
-      <main className="section page-main-content">
+      <main className="section">
         <div className="container">
-          {/* Header Banner */}
-          <div className="page-banner text-center">
-            <div className="section-badge">
-              <span className="material-symbols-outlined">smart_display</span>
-              <span>BROADCAST THEATER</span>
-            </div>
-            <h1 className="page-title">
-              WATCH <span className="text-gradient">UNCENSORED SETS</span>
+          <div className="section-head">
+            <span className="section-badge">UNCENSORED RECORDINGS</span>
+            <h1 className="section-title">
+              WATCH <span className="text-gradient">STAGE TAPES</span>
             </h1>
-            <p className="page-subtitle mx-auto">
-              Raw punchlines, crowd roasts, and full qualifier episodes filmed in 4K UHD across Indian comedy clubs.
+            <p className="section-subtitle">
+              Authentic audience roasts and comedian qualifiers filmed in comedy clubs across India.
             </p>
           </div>
 
-          {/* Featured Episode Showcase */}
-          <FeaturedVideo />
+          {/* Tag Filter */}
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '32px' }}>
+            {tags.map((t) => (
+              <button
+                key={t}
+                type="button"
+                className={`btn btn-sm ${selectedTag === t ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => setSelectedTag(t)}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
 
-          {/* Video Filter & Search Controls */}
-          <div className="watch-controls-bar">
-            <div className="filter-pills">
-              {tags.map((tag) => (
-                <button
-                  key={tag}
-                  type="button"
-                  className={`filter-pill ${selectedTag === tag ? 'active' : ''}`}
-                  onClick={() => setSelectedTag(tag)}
-                >
-                  {tag}
-                </button>
+          {loading ? (
+            <div style={{ textAlign: 'center', padding: '40px', color: 'var(--gray)' }}>Loading videos...</div>
+          ) : filtered.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px', color: 'var(--gray)' }}>No videos published in this category yet.</div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
+              {filtered.map((vid) => (
+                <VideoCard key={vid.id} video={vid} onPlay={setActiveVideo} />
               ))}
             </div>
-
-            <div className="watch-search-input-wrap">
-              <span className="material-symbols-outlined search-icon">search</span>
-              <input
-                type="text"
-                placeholder="Search comedian sets..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="form-input watch-search-input"
-              />
-            </div>
-          </div>
-
-          {/* Grid of Videos */}
-          <div className="watch-archive-heading">
-            <h2 className="watch-section-title">ALL PUBLISHED COMEDY TAPES ({filteredVideos.length})</h2>
-          </div>
-
-          <VideoGrid videos={filteredVideos} />
+          )}
         </div>
       </main>
+
+      {/* Video Modal - defers iframe embed until user clicks play */}
+      <Modal
+        isOpen={!!activeVideo}
+        onClose={() => setActiveVideo(null)}
+        title={activeVideo?.title}
+      >
+        {activeVideo && (
+          <div style={{ width: '100%', aspectRatio: '16/9', background: '#000', borderRadius: '4px', overflow: 'hidden' }}>
+            <iframe
+              src={`https://www.youtube.com/embed/${activeVideo.youtubeId || '5qap5aO4i9A'}?autoplay=1`}
+              title={activeVideo.title}
+              style={{ width: '100%', height: '100%', border: 'none' }}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          </div>
+        )}
+      </Modal>
 
       <Footer />
     </div>

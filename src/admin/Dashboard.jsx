@@ -1,122 +1,114 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useApp } from '../context/AppContext';
-import { exportApplicationsToCSV } from '../utils/exportCsv';
-import { formatRelativeTime } from '../utils/formatDate';
+import { api } from '../services/api';
 
 export const Dashboard = () => {
-  const { applications, activeEvent, videos, talent } = useApp();
+  const [apps, setApps] = useState([]);
+  const [events, setEvents] = useState([]);
+  const [videos, setVideos] = useState([]);
+  const [talent, setTalent] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const pendingCount = applications.filter((a) => a.status === 'pending').length;
-  const approvedCount = applications.filter((a) => a.status === 'approved').length;
-  const shortlistedCount = applications.filter((a) => a.status === 'shortlisted').length;
+  useEffect(() => {
+    let mounted = true;
+    Promise.all([
+      api.getApplications(),
+      api.getEvents(),
+      api.getVideos(),
+      api.getTalent()
+    ]).then(([a, e, v, t]) => {
+      if (mounted) {
+        setApps(a);
+        setEvents(e);
+        setVideos(v);
+        setTalent(t);
+        setLoading(false);
+      }
+    });
+    return () => { mounted = false; };
+  }, []);
+
+  const pendingCount = apps.filter((a) => a.status === 'pending').length;
+  const approvedCount = apps.filter((a) => a.status === 'approved').length;
+
+  if (loading) {
+    return <div style={{ padding: '40px', color: 'var(--gray)' }}>Loading dashboard...</div>;
+  }
 
   return (
-    <div className="admin-dashboard-view">
-      {/* 4 Stat Cards */}
+    <div>
+      <div style={{ marginBottom: '24px' }}>
+        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '32px', color: '#FFF' }}>
+          TOUR DASHBOARD
+        </h1>
+        <p style={{ fontSize: '13px', color: 'var(--gray)' }}>
+          High-level overview of contestant applications, tour events, and published content.
+        </p>
+      </div>
+
+      {/* Clean Stat Cards */}
       <div className="stat-cards-grid">
         <div className="stat-card">
-          <span className="stat-card-label">TOTAL APPLICATIONS</span>
-          <div className="stat-card-value">{applications.length}</div>
-          <p className="stat-card-sub">{pendingCount} pending jury review</p>
+          <span className="stat-card-label">APPLICATIONS</span>
+          <div className="stat-card-value">{apps.length}</div>
+          <p style={{ fontSize: '12px', color: 'var(--gray)', marginTop: '4px' }}>
+            {pendingCount} pending review • {approvedCount} approved
+          </p>
         </div>
 
         <div className="stat-card">
-          <span className="stat-card-label">APPROVED STAGE SLOTS</span>
+          <span className="stat-card-label">TOUR CHAPTERS</span>
+          <div className="stat-card-value" style={{ color: 'var(--yellow)' }}>
+            {events.length}
+          </div>
+          <p style={{ fontSize: '12px', color: 'var(--gray)', marginTop: '4px' }}>Active regional stops</p>
+        </div>
+
+        <div className="stat-card">
+          <span className="stat-card-label">QUALIFIED TALENT</span>
           <div className="stat-card-value" style={{ color: '#22c55e' }}>
-            {approvedCount}
+            {talent.length}
           </div>
-          <p className="stat-card-sub">{shortlistedCount} shortlisted</p>
+          <p style={{ fontSize: '12px', color: 'var(--gray)', marginTop: '4px' }}>Comedians on leaderboard</p>
         </div>
 
         <div className="stat-card">
-          <span className="stat-card-label">SEATS AVAILABLE</span>
-          <div className="stat-card-value" style={{ color: '#FFB000' }}>
-            {activeEvent?.seatsLeft || 18}
+          <span className="stat-card-label">VIDEO TAPES</span>
+          <div className="stat-card-value" style={{ color: '#60a5fa' }}>
+            {videos.length}
           </div>
-          <p className="stat-card-sub">Out of {activeEvent?.totalCapacity || 100} capacity</p>
-        </div>
-
-        <div className="stat-card">
-          <span className="stat-card-label">WINNER SPOT PURSE</span>
-          <div className="stat-card-value">{activeEvent?.prize || '₹15,000'}</div>
-          <p className="stat-card-sub">{activeEvent?.city || 'KOLKATA'} Chapter</p>
+          <p style={{ fontSize: '12px', color: 'var(--gray)', marginTop: '4px' }}>Published sets</p>
         </div>
       </div>
 
-      {/* Active Event Banner & Quick Actions */}
+      {/* Recent Applications */}
       <div className="card-section">
         <div className="card-section-head">
           <div>
-            <h3>CURRENT ACTIVE TOUR CHAPTER</h3>
-            <p>Configured as the primary showcase on the website homepage</p>
+            <h3>RECENT AUDITION APPLICATIONS</h3>
+            <p style={{ fontSize: '13px', color: 'var(--gray)' }}>Newest submissions awaiting assessment</p>
           </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <Link to="/admin/events" className="btn-action-primary">
-              <span className="material-symbols-outlined">edit</span>
-              <span>EDIT EVENT DETAILS</span>
-            </Link>
-            <button
-              type="button"
-              className="btn-action-secondary"
-              onClick={() => exportApplicationsToCSV(applications)}
-            >
-              <span className="material-symbols-outlined">download</span>
-              <span>EXPORT APPLICATIONS (CSV)</span>
-            </button>
-          </div>
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', background: '#0A0A0A', padding: '16px', borderRadius: '6px' }}>
-          <div>
-            <span style={{ fontSize: '11px', color: '#888', fontFamily: 'var(--font-mono)' }}>CHAPTER TITLE</span>
-            <div style={{ fontWeight: '700', fontSize: '16px', marginTop: '2px' }}>{activeEvent?.title}</div>
-          </div>
-          <div>
-            <span style={{ fontSize: '11px', color: '#888', fontFamily: 'var(--font-mono)' }}>VENUE &amp; CITY</span>
-            <div style={{ fontSize: '14px', marginTop: '2px' }}>{activeEvent?.venue}, {activeEvent?.city}</div>
-          </div>
-          <div>
-            <span style={{ fontSize: '11px', color: '#888', fontFamily: 'var(--font-mono)' }}>SHOW DATE &amp; TIME</span>
-            <div style={{ fontSize: '14px', marginTop: '2px' }}>{activeEvent?.date} • {activeEvent?.time}</div>
-          </div>
-          <div>
-            <span style={{ fontSize: '11px', color: '#888', fontFamily: 'var(--font-mono)' }}>TICKET PRICES</span>
-            <div style={{ fontSize: '14px', marginTop: '2px' }}>Gen: ₹{activeEvent?.genCost} | VIP: ₹{activeEvent?.vipCost}</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Recent Applications Preview */}
-      <div className="card-section">
-        <div className="card-section-head">
-          <div>
-            <h3>RECENT AUDITION SUBMISSIONS</h3>
-            <p>Comedians awaiting curatorial assessment</p>
-          </div>
-          <Link to="/admin/applications" className="btn-action-secondary">
-            <span>VIEW ALL ({applications.length})</span>
-            <span className="material-symbols-outlined">arrow_forward</span>
+          <Link to="/admin/applications" className="btn btn-secondary btn-sm">
+            View All ({apps.length})
           </Link>
         </div>
 
-        <div className="table-responsive-container">
+        <div className="table-responsive">
           <table className="data-table">
             <thead>
               <tr>
                 <th>ID</th>
-                <th>COMIC NAME</th>
+                <th>NAME</th>
                 <th>CITY</th>
-                <th>PHONE / WHATSAPP</th>
-                <th>EXPERIENCE</th>
+                <th>PHONE</th>
+                <th>TAPE</th>
                 <th>STATUS</th>
-                <th>APPLIED</th>
               </tr>
             </thead>
             <tbody>
-              {applications.slice(0, 5).map((app) => (
+              {apps.slice(0, 5).map((app) => (
                 <tr key={app.id}>
-                  <td style={{ fontFamily: 'var(--font-mono)', fontWeight: '700', color: '#FF8A00' }}>
+                  <td style={{ fontFamily: 'var(--font-mono)', fontWeight: '700', color: 'var(--orange)' }}>
                     {app.id}
                   </td>
                   <td style={{ fontWeight: '600' }}>{app.name}</td>
@@ -126,20 +118,24 @@ export const Dashboard = () => {
                       href={`https://wa.me/${app.phone.replace(/[^0-9]/g, '')}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      style={{ color: '#22c55e', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                      style={{ color: '#22c55e', textDecoration: 'none' }}
                     >
-                      <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>chat</span>
-                      <span>{app.phone}</span>
+                      {app.phone}
                     </a>
                   </td>
-                  <td>{app.exp || app.comedyExperience}</td>
+                  <td>
+                    {app.tape ? (
+                      <a href={app.tape} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--orange)', fontSize: '12px' }}>
+                        Watch Set
+                      </a>
+                    ) : (
+                      <span style={{ color: '#666' }}>No link</span>
+                    )}
+                  </td>
                   <td>
                     <span className={`status-badge status-${app.status || 'pending'}`}>
                       {app.status || 'pending'}
                     </span>
-                  </td>
-                  <td style={{ fontSize: '12px', color: '#888' }}>
-                    {formatRelativeTime(app.timestamp)}
                   </td>
                 </tr>
               ))}

@@ -1,90 +1,87 @@
-import React, { useState } from 'react';
-import { useApp } from '../context/AppContext';
+import React, { useState, useEffect } from 'react';
+import { api } from '../services/api';
 
 export const SponsorManagement = () => {
-  const { sponsors, setSponsors, showToast } = useApp();
+  const [sponsors, setSponsors] = useState([]);
+  const [form, setForm] = useState({ name: '', tier: 'Official Partner', website: '' });
+  const [loading, setLoading] = useState(true);
 
-  const [newSponsor, setNewSponsor] = useState({
-    name: '',
-    tier: 'Official Partner',
-    website: '',
-    description: ''
-  });
+  useEffect(() => {
+    load();
+  }, []);
 
-  const handleAdd = (e) => {
-    e.preventDefault();
-    if (!newSponsor.name) {
-      alert('Sponsor name is required.');
-      return;
-    }
-    const created = {
-      ...newSponsor,
-      id: `sp-${Date.now()}`
-    };
-    setSponsors([...sponsors, created]);
-    showToast(`Added ${created.name} to partners list!`, 'success');
-    setNewSponsor({
-      name: '',
-      tier: 'Official Partner',
-      website: '',
-      description: ''
-    });
+  const load = async () => {
+    const list = await api.getSponsors();
+    setSponsors(list);
+    setLoading(false);
   };
 
-  const handleDelete = (id) => {
-    setSponsors(sponsors.filter((s) => s.id !== id));
-    showToast('Sponsor removed', 'info');
+  const handleAdd = async (e) => {
+    e.preventDefault();
+    if (!form.name) return;
+
+    const updated = [...sponsors, { ...form, id: `sp-${Date.now()}` }];
+    await api.saveSponsors(updated);
+    setForm({ name: '', tier: 'Official Partner', website: '' });
+    load();
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm('Remove sponsor?')) {
+      const updated = sponsors.filter((s) => s.id !== id);
+      await api.saveSponsors(updated);
+      load();
+    }
   };
 
   return (
-    <div className="admin-sponsors-view">
+    <div>
       <div className="card-section">
         <div className="card-section-head">
           <div>
-            <h3>ADD BRAND SPONSOR / VENUE PARTNER</h3>
-            <p>Ecosystem supporters shown on the homepage and show posters</p>
+            <h3>ADD BRAND SPONSOR / PARTNER</h3>
+            <p style={{ fontSize: '13px', color: 'var(--gray)' }}>Ecosystem partners supporting tour chapters</p>
           </div>
         </div>
 
-        <form onSubmit={handleAdd} className="admin-form-grid">
+        <form onSubmit={handleAdd} className="form-row form-row-2">
           <div className="form-group">
-            <label className="form-label">BRAND / PARTNER NAME</label>
+            <label className="form-label">Brand Name *</label>
             <input
               type="text"
-              value={newSponsor.name}
-              onChange={(e) => setNewSponsor({ ...newSponsor, name: e.target.value })}
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
               className="form-input"
               required
             />
           </div>
 
           <div className="form-group">
-            <label className="form-label">SPONSORSHIP TIER</label>
+            <label className="form-label">Partnership Tier *</label>
             <input
               type="text"
-              placeholder="e.g. Official Audio Partner, Venue Partner"
-              value={newSponsor.tier}
-              onChange={(e) => setNewSponsor({ ...newSponsor, tier: e.target.value })}
+              placeholder="e.g. Official Audio Partner"
+              value={form.tier}
+              onChange={(e) => setForm({ ...form, tier: e.target.value })}
               className="form-input"
               required
             />
           </div>
 
-          <div className="form-group">
-            <label className="form-label">WEBSITE LINK</label>
+          <div className="form-group" style={{ gridColumn: 'span 2' }}>
+            <label className="form-label">Website (Optional)</label>
             <input
               type="url"
               placeholder="https://brand.com"
-              value={newSponsor.website}
-              onChange={(e) => setNewSponsor({ ...newSponsor, website: e.target.value })}
+              value={form.website}
+              onChange={(e) => setForm({ ...form, website: e.target.value })}
               className="form-input"
             />
           </div>
 
-          <div className="form-group form-full">
-            <button type="submit" className="btn-action-primary">
-              <span className="material-symbols-outlined">add</span>
-              <span>ADD BRAND PARTNER</span>
+          <div style={{ gridColumn: 'span 2' }}>
+            <button type="submit" className="btn btn-primary btn-sm">
+              Add Partner
             </button>
           </div>
         </form>
@@ -93,51 +90,45 @@ export const SponsorManagement = () => {
       <div className="card-section">
         <div className="card-section-head">
           <div>
-            <h3>CURRENT SPONSORS &amp; SUPPORTERS ({sponsors.length})</h3>
+            <h3>CURRENT SPONSORS ({sponsors.length})</h3>
           </div>
         </div>
 
-        <div className="table-responsive-container">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>BRAND NAME</th>
-                <th>TIER</th>
-                <th>WEBSITE</th>
-                <th>ACTIONS</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sponsors.map((s) => (
-                <tr key={s.id}>
-                  <td style={{ fontWeight: '600' }}>{s.name}</td>
-                  <td>
-                    <span className="status-badge status-pending">{s.tier}</span>
-                  </td>
-                  <td>
-                    {s.website && s.website !== '#' ? (
-                      <a href={s.website} target="_blank" rel="noopener noreferrer" style={{ color: '#FF8A00' }}>
-                        {s.website}
-                      </a>
-                    ) : (
-                      <span style={{ color: '#666' }}>—</span>
-                    )}
-                  </td>
-                  <td>
-                    <button
-                      type="button"
-                      className="btn-icon-action btn-icon-danger"
-                      onClick={() => handleDelete(s.id)}
-                      title="Remove partner"
-                    >
-                      <span className="material-symbols-outlined">delete</span>
-                    </button>
-                  </td>
+        {loading ? (
+          <div style={{ padding: '20px', color: 'var(--gray)' }}>Loading...</div>
+        ) : (
+          <div className="table-responsive">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>BRAND</th>
+                  <th>TIER</th>
+                  <th>WEBSITE</th>
+                  <th>ACTIONS</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {sponsors.map((s) => (
+                  <tr key={s.id}>
+                    <td><strong style={{ color: '#FFF' }}>{s.name}</strong></td>
+                    <td><span style={{ color: 'var(--yellow)' }}>{s.tier}</span></td>
+                    <td style={{ fontSize: '12px', color: 'var(--gray)' }}>{s.website || '—'}</td>
+                    <td>
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        style={{ color: '#ff6b6b', padding: '4px 8px', minHeight: '30px' }}
+                        onClick={() => handleDelete(s.id)}
+                      >
+                        Remove
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );

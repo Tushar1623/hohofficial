@@ -1,185 +1,104 @@
-import React, { useState } from 'react';
-import { useApp } from '../context/AppContext';
+import React, { useState, useEffect } from 'react';
+import { api } from '../services/api';
 
 export const VideoManagement = () => {
-  const { featuredVideo, updateFeaturedVideoData, videos, addVideoItem, deleteVideoItem } = useApp();
+  const [videos, setVideos] = useState([]);
+  const [form, setForm] = useState({ title: '', youtubeId: '', tag: 'CROWD WORK', duration: '15:00' });
+  const [loading, setLoading] = useState(true);
 
-  // Featured form state
-  const [featForm, setFeatForm] = useState({
-    title: featuredVideo?.title || '',
-    youtubeId: featuredVideo?.youtubeId || '',
-    episode: featuredVideo?.episode || '',
-    duration: featuredVideo?.duration || '',
-    category: featuredVideo?.category || ''
-  });
+  useEffect(() => {
+    load();
+  }, []);
 
-  // New video form state
-  const [newVideoForm, setNewVideoForm] = useState({
-    title: '',
-    youtubeId: '',
-    tag: 'CROWD WORK',
-    category: 'Stand-Up Special',
-    details: 'Live Stage Set • 50K Views',
-    thumbnail: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBNpZgYKj4shh6YFuYbLQqqBi39C4tdiD0ep-t1siBsvvuk75EF_38ZpTVf0yUTGN7WZnZxeBTrtDmKeLBp9egW-2M-AMp9kb-53UMNcDJaI9v7RkD3fh-qniuQlQ-w3okqPExaUU_ymUd-3dgiCTxEmZMkEmo_NCbIMVg8b3L733CwVPbkVFmqhXhbq2dOFsLaI5hi067V7VM-hMXiLmZfReg1Qa1YxitWQ_euTx_n'
-  });
-
-  const handleUpdateFeatured = async (e) => {
-    e.preventDefault();
-    await updateFeaturedVideoData({
-      ...featForm,
-      embedUrl: `https://www.youtube.com/embed/${featForm.youtubeId}?autoplay=1`
-    });
+  const load = async () => {
+    const list = await api.getVideos();
+    setVideos(list);
+    setLoading(false);
   };
 
-  const handleAddVideo = async (e) => {
+  const handleAdd = async (e) => {
     e.preventDefault();
-    if (!newVideoForm.title || !newVideoForm.youtubeId) {
-      alert('Title and YouTube ID are required.');
-      return;
+    if (!form.title || !form.youtubeId) return;
+
+    await api.addVideo({
+      ...form,
+      thumbnail: 'https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&w=640&q=80',
+      youtubeUrl: `https://www.youtube.com/watch?v=${form.youtubeId}`
+    });
+    setForm({ title: '', youtubeId: '', tag: 'CROWD WORK', duration: '15:00' });
+    load();
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm('Delete video?')) {
+      await api.deleteVideo(id);
+      load();
     }
-    await addVideoItem({
-      ...newVideoForm,
-      embedUrl: `https://www.youtube.com/embed/${newVideoForm.youtubeId}?autoplay=1`
-    });
-    setNewVideoForm({
-      title: '',
-      youtubeId: '',
-      tag: 'CROWD WORK',
-      category: 'Stand-Up Special',
-      details: 'Live Stage Set • 50K Views',
-      thumbnail: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBNpZgYKj4shh6YFuYbLQqqBi39C4tdiD0ep-t1siBsvvuk75EF_38ZpTVf0yUTGN7WZnZxeBTrtDmKeLBp9egW-2M-AMp9kb-53UMNcDJaI9v7RkD3fh-qniuQlQ-w3okqPExaUU_ymUd-3dgiCTxEmZMkEmo_NCbIMVg8b3L733CwVPbkVFmqhXhbq2dOFsLaI5hi067V7VM-hMXiLmZfReg1Qa1YxitWQ_euTx_n'
-    });
   };
 
   return (
-    <div className="admin-videos-view">
-      {/* Featured Video Card */}
+    <div>
+      {/* Add Video Card */}
       <div className="card-section">
         <div className="card-section-head">
           <div>
-            <h3>FEATURED YOUTUBE EPISODE</h3>
-            <p>Displayed front-and-center on the homepage and video theater</p>
+            <h3>ADD VIDEO CLIP</h3>
+            <p style={{ fontSize: '13px', color: 'var(--gray)' }}>Publish a comedian set to the watch library</p>
           </div>
         </div>
 
-        <form onSubmit={handleUpdateFeatured} className="admin-form-grid">
+        <form onSubmit={handleAdd} className="form-row form-row-2">
           <div className="form-group">
-            <label className="form-label">EPISODE TITLE</label>
+            <label className="form-label">Video Title *</label>
             <input
               type="text"
-              value={featForm.title}
-              onChange={(e) => setFeatForm({ ...featForm, title: e.target.value })}
+              placeholder="e.g. Kolkata Roast Rounds"
+              value={form.title}
+              onChange={(e) => setForm({ ...form, title: e.target.value })}
               className="form-input"
               required
             />
           </div>
 
           <div className="form-group">
-            <label className="form-label">YOUTUBE VIDEO ID</label>
+            <label className="form-label">YouTube Video ID *</label>
             <input
               type="text"
-              value={featForm.youtubeId}
-              onChange={(e) => setFeatForm({ ...featForm, youtubeId: e.target.value })}
-              className="form-input"
-              placeholder="e.g. dQw4w9WgXcQ"
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">EPISODE / CHAPTER LABEL</label>
-            <input
-              type="text"
-              value={featForm.episode}
-              onChange={(e) => setFeatForm({ ...featForm, episode: e.target.value })}
-              className="form-input"
-              placeholder="EPISODE 04 • EAST QUALIFIERS"
-            />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">DURATION &amp; RESOLUTION</label>
-            <input
-              type="text"
-              value={featForm.duration}
-              onChange={(e) => setFeatForm({ ...featForm, duration: e.target.value })}
-              className="form-input"
-              placeholder="4K UHD • 21:40"
-            />
-          </div>
-
-          <div className="form-group form-full">
-            <button type="submit" className="btn-action-primary">
-              <span className="material-symbols-outlined">save</span>
-              <span>UPDATE FEATURED VIDEO</span>
-            </button>
-          </div>
-        </form>
-      </div>
-
-      {/* Add New Video Clip */}
-      <div className="card-section">
-        <div className="card-section-head">
-          <div>
-            <h3>ADD NEW VIDEO CLIP</h3>
-            <p>Publish a comedian set to the watch library</p>
-          </div>
-        </div>
-
-        <form onSubmit={handleAddVideo} className="admin-form-grid">
-          <div className="form-group">
-            <label className="form-label">VIDEO TITLE</label>
-            <input
-              type="text"
-              placeholder="e.g. Rahul Sharma Roast Special"
-              value={newVideoForm.title}
-              onChange={(e) => setNewVideoForm({ ...newVideoForm, title: e.target.value })}
+              placeholder="e.g. 5qap5aO4i9A"
+              value={form.youtubeId}
+              onChange={(e) => setForm({ ...form, youtubeId: e.target.value })}
               className="form-input"
               required
             />
           </div>
 
           <div className="form-group">
-            <label className="form-label">YOUTUBE ID</label>
-            <input
-              type="text"
-              placeholder="e.g. dQw4w9WgXcQ"
-              value={newVideoForm.youtubeId}
-              onChange={(e) => setNewVideoForm({ ...newVideoForm, youtubeId: e.target.value })}
-              className="form-input"
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">GENRE / TAG</label>
+            <label className="form-label">Tag / Genre</label>
             <select
-              value={newVideoForm.tag}
-              onChange={(e) => setNewVideoForm({ ...newVideoForm, tag: e.target.value })}
+              value={form.tag}
+              onChange={(e) => setForm({ ...form, tag: e.target.value })}
               className="form-select"
             >
               <option value="CROWD WORK">CROWD WORK</option>
-              <option value="DARK HUMOR">DARK HUMOR</option>
+              <option value="SATIRE">SATIRE</option>
               <option value="DEADPAN">DEADPAN</option>
-              <option value="OBSERVATIONAL">OBSERVATIONAL</option>
               <option value="ROAST">ROAST</option>
             </select>
           </div>
 
           <div className="form-group">
-            <label className="form-label">META DETAILS</label>
+            <label className="form-label">Duration</label>
             <input
               type="text"
-              value={newVideoForm.details}
-              onChange={(e) => setNewVideoForm({ ...newVideoForm, details: e.target.value })}
+              value={form.duration}
+              onChange={(e) => setForm({ ...form, duration: e.target.value })}
               className="form-input"
             />
           </div>
 
-          <div className="form-group form-full">
-            <button type="submit" className="btn-action-primary">
-              <span className="material-symbols-outlined">add</span>
-              <span>PUBLISH VIDEO TO ARCHIVE</span>
+          <div style={{ gridColumn: 'span 2' }}>
+            <button type="submit" className="btn btn-primary btn-sm">
+              Publish Video
             </button>
           </div>
         </form>
@@ -190,53 +109,44 @@ export const VideoManagement = () => {
         <div className="card-section-head">
           <div>
             <h3>CURRENT VIDEO ARCHIVE ({videos.length})</h3>
-            <p>Videos shown on the watch page and latest clips section</p>
           </div>
         </div>
 
-        <div className="table-responsive-container">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>THUMBNAIL</th>
-                <th>TITLE</th>
-                <th>TAG</th>
-                <th>YOUTUBE ID</th>
-                <th>DETAILS</th>
-                <th>ACTIONS</th>
-              </tr>
-            </thead>
-            <tbody>
-              {videos.map((v) => (
-                <tr key={v.id}>
-                  <td>
-                    <img
-                      src={v.thumbnail}
-                      alt={v.title}
-                      style={{ width: '60px', height: '36px', objectFit: 'cover', borderRadius: '4px' }}
-                    />
-                  </td>
-                  <td style={{ fontWeight: '600' }}>{v.title}</td>
-                  <td>
-                    <span className="status-badge status-shortlisted">{v.tag || v.category}</span>
-                  </td>
-                  <td style={{ fontFamily: 'var(--font-mono)' }}>{v.youtubeId}</td>
-                  <td style={{ fontSize: '12px', color: '#888' }}>{v.details}</td>
-                  <td>
-                    <button
-                      type="button"
-                      className="btn-icon-action btn-icon-danger"
-                      onClick={() => deleteVideoItem(v.id)}
-                      title="Delete video"
-                    >
-                      <span className="material-symbols-outlined">delete</span>
-                    </button>
-                  </td>
+        {loading ? (
+          <div style={{ padding: '20px', color: 'var(--gray)' }}>Loading...</div>
+        ) : (
+          <div className="table-responsive">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>TITLE</th>
+                  <th>TAG</th>
+                  <th>YOUTUBE ID</th>
+                  <th>ACTIONS</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {videos.map((v) => (
+                  <tr key={v.id}>
+                    <td><strong style={{ color: '#FFF' }}>{v.title}</strong></td>
+                    <td><span className="status-badge status-approved">{v.tag}</span></td>
+                    <td>{v.youtubeId}</td>
+                    <td>
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        style={{ color: '#ff6b6b', padding: '4px 8px', minHeight: '30px' }}
+                        onClick={() => handleDelete(v.id)}
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );
