@@ -1,27 +1,36 @@
-function getAuthHeader() {
-  const token = sessionStorage.getItem('hoh_admin_token');
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
+const API_BASE = '/api';
 
-async function request(path, options = {}) {
+async function request(endpoint, options = {}) {
+  const url = `${API_BASE}${endpoint}`;
+  const token = sessionStorage.getItem('hoh_admin_token');
+
   const headers = {
     'Content-Type': 'application/json',
-    ...getAuthHeader(),
-    ...options.headers
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(options.headers || {})
   };
 
-  const response = await fetch(`/api${path}`, { ...options, headers });
+  const response = await fetch(url, {
+    ...options,
+    headers
+  });
+
+  const isJson = response.headers.get('content-type')?.includes('application/json');
+  const data = isJson ? await response.json() : null;
 
   if (!response.ok) {
-    const errorBody = await response.json().catch(() => ({}));
-    throw new Error(errorBody.error || `Request failed with status ${response.status}`);
+    const errorMsg = data?.error || data?.message || `Request failed with status ${response.status}`;
+    const err = new Error(errorMsg);
+    err.status = response.status;
+    err.code = data?.code;
+    throw err;
   }
 
-  return response.json();
+  return data;
 }
 
 export const api = {
-  // Public Data
+  // Public Events
   getNextEvent() {
     return request('/events/next');
   },
@@ -30,42 +39,49 @@ export const api = {
     return request('/events');
   },
 
+  // Public Featured Video
   getFeaturedVideo() {
     return request('/video');
   },
 
+  // Public Ticket Settings
   getTicketSettings() {
     return request('/tickets');
   },
+  getTickets() {
+    return request('/tickets');
+  },
 
+  // Public Site Settings
   getSettings() {
     return request('/settings');
   },
 
-  submitApplication(data) {
+  // Public Contestant Application
+  submitApplication(formData) {
     return request('/applications', {
       method: 'POST',
-      body: JSON.stringify(data)
+      body: JSON.stringify(formData)
     });
   },
 
   // Admin Events
-  createEvent(data) {
+  createEvent(eventData) {
     return request('/events', {
       method: 'POST',
-      body: JSON.stringify(data)
+      body: JSON.stringify(eventData)
     });
   },
 
-  updateEvent(id, data) {
-    return request(`/events/${id}`, {
+  updateEvent(id, eventData) {
+    return request(`/events/${encodeURIComponent(id)}`, {
       method: 'PUT',
-      body: JSON.stringify(data)
+      body: JSON.stringify(eventData)
     });
   },
 
   deleteEvent(id) {
-    return request(`/events/${id}`, {
+    return request(`/events/${encodeURIComponent(id)}`, {
       method: 'DELETE'
     });
   },
@@ -76,40 +92,46 @@ export const api = {
     return request(`/applications${query}`);
   },
 
-  updateApplication(id, updates) {
-    return request(`/applications/${id}`, {
+  updateApplication(id, appData) {
+    return request(`/applications/${encodeURIComponent(id)}`, {
       method: 'PUT',
-      body: JSON.stringify(updates)
+      body: JSON.stringify(appData)
     });
   },
 
   deleteApplication(id) {
-    return request(`/applications/${id}`, {
+    return request(`/applications/${encodeURIComponent(id)}`, {
       method: 'DELETE'
     });
   },
 
   // Admin Featured Video
-  updateFeaturedVideo(data) {
+  updateFeaturedVideo(videoData) {
     return request('/video', {
       method: 'PUT',
-      body: JSON.stringify(data)
+      body: JSON.stringify(videoData)
     });
   },
 
   // Admin Tickets
-  updateTicketSettings(data) {
+  updateTicketSettings(ticketData) {
     return request('/tickets', {
       method: 'PUT',
-      body: JSON.stringify(data)
+      body: JSON.stringify(ticketData)
+    });
+  },
+  updateTickets(ticketData) {
+    return request('/tickets', {
+      method: 'PUT',
+      body: JSON.stringify(ticketData)
     });
   },
 
   // Admin Settings
-  updateSettings(data) {
+  updateSettings(settingsData) {
     return request('/settings', {
       method: 'PUT',
-      body: JSON.stringify(data)
+      body: JSON.stringify(settingsData)
     });
   },
 
@@ -119,7 +141,7 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ password })
     });
-    if (result.token) {
+    if (result?.token) {
       sessionStorage.setItem('hoh_admin_token', result.token);
       return true;
     }
@@ -136,7 +158,18 @@ export const api = {
     }
   },
 
+  async verifyAuth() {
+    try {
+      const res = await request('/auth/verify');
+      return Boolean(res?.authenticated);
+    } catch {
+      return false;
+    }
+  },
+
   isAuthenticated() {
     return Boolean(sessionStorage.getItem('hoh_admin_token'));
   }
 };
+
+export default api;

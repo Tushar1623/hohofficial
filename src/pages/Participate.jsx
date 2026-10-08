@@ -86,7 +86,7 @@ export const Participate = () => {
             <p className="success-msg">Your application has been received.</p>
             <div className="app-id-pill">
               <span className="app-id-label">Application ID:</span>
-              <span className="app-id-val">{submittedApp.id}</span>
+              <span className="app-id-val">{submittedApp.applicationId || submittedApp.id}</span>
             </div>
             <p className="success-subtext">
               The HoH selection team reviews submissions on a rolling basis. If shortlisted, you will receive venue schedule and timing via WhatsApp or email.

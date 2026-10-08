@@ -23,7 +23,17 @@ export const Login = () => {
         navigate('/admin', { replace: true });
       }
     } catch (err) {
-      setError(err.message || 'Authentication failed. Please check your password and try again.');
+      if (err.code === 'DATABASE_UNAVAILABLE' || err.status === 503) {
+        setError('Database is currently unavailable. Please try again shortly.');
+      } else if (err.status === 401 || err.code === 'UNAUTHORIZED') {
+        setError('Invalid admin password.');
+      } else if (err.code === 'MISSING_CONFIG' || err.message?.includes('not configured')) {
+        setError('Admin authentication is not configured.');
+      } else if (!err.status || err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError')) {
+        setError('Unable to connect to the server.');
+      } else {
+        setError(err.message || 'Authentication failed. Please check your password and try again.');
+      }
     } finally {
       setLoading(false);
     }

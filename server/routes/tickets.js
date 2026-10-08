@@ -4,27 +4,45 @@ import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
 
-// GET ticket settings (Public)
+// GET /api/tickets (Public: get ticket settings or null)
 router.get('/', async (req, res) => {
   try {
     const tickets = await TicketSettings.findOne({ key: 'ticket_settings' });
-    res.json(tickets || { generalPrice: 399, vipPrice: 699, bookingUrl: '', availability: 'OPEN' });
+    res.json(tickets || null);
   } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch ticket settings: ' + err.message });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch ticket settings',
+      code: 'SERVER_ERROR'
+    });
   }
 });
 
-// PUT update ticket settings (Admin only)
+// PUT /api/tickets (Admin only: update ticket settings)
 router.put('/', requireAuth, async (req, res) => {
   try {
+    const { generalPrice, vipPrice, bookingUrl, availability } = req.body;
+
     const updated = await TicketSettings.findOneAndUpdate(
       { key: 'ticket_settings' },
-      { $set: req.body },
+      {
+        $set: {
+          generalPrice: Number(generalPrice) || 0,
+          vipPrice: Number(vipPrice) || 0,
+          bookingUrl: bookingUrl?.trim() || '',
+          availability: availability || 'OPEN'
+        }
+      },
       { new: true, upsert: true }
     );
+
     res.json(updated);
   } catch (err) {
-    res.status(400).json({ error: 'Failed to update ticket settings: ' + err.message });
+    res.status(400).json({
+      success: false,
+      error: 'Failed to update ticket settings: ' + err.message,
+      code: 'SERVER_ERROR'
+    });
   }
 });
 

@@ -1,22 +1,84 @@
 import mongoose from 'mongoose';
 
 const applicationSchema = new mongoose.Schema({
-  id: { type: String, required: true, unique: true },
-  name: { type: String, required: true },
-  phone: { type: String, required: true },
-  email: { type: String, required: true },
-  city: { type: String, required: true },
-  tape: { type: String, required: true }, // Performance video URL
-  bio: { type: String, required: true },  // Short introduction
-  instagram: { type: String, default: '' },
-  youtube: { type: String, default: '' },
-  exp: { type: String, default: '' },
+  applicationId: {
+    type: String,
+    required: [true, 'Application ID is required'],
+    unique: true,
+    trim: true,
+    index: true
+  },
+  name: {
+    type: String,
+    required: [true, 'Name is required'],
+    trim: true
+  },
+  phone: {
+    type: String,
+    required: [true, 'Phone number is required'],
+    trim: true,
+    index: true
+  },
+  email: {
+    type: String,
+    required: [true, 'Email address is required'],
+    trim: true,
+    lowercase: true,
+    index: true
+  },
+  city: {
+    type: String,
+    required: [true, 'City is required'],
+    trim: true
+  },
+  performanceVideo: {
+    type: String,
+    required: [true, 'Performance video URL is required'],
+    trim: true
+  },
+  shortIntroduction: {
+    type: String,
+    required: [true, 'Short introduction is required'],
+    trim: true
+  },
+  instagram: {
+    type: String,
+    default: '',
+    trim: true
+  },
+  youtube: {
+    type: String,
+    default: '',
+    trim: true
+  },
+  experience: {
+    type: String,
+    default: '',
+    trim: true
+  },
   status: {
     type: String,
-    enum: ['PENDING', 'SHORTLISTED', 'APPROVED', 'REJECTED'],
-    default: 'PENDING'
-  },
-  timestamp: { type: String, default: () => new Date().toISOString() }
-}, { timestamps: true });
+    enum: {
+      values: ['PENDING', 'SHORTLISTED', 'APPROVED', 'REJECTED'],
+      message: '{VALUE} is not a valid status'
+    },
+    default: 'PENDING',
+    index: true
+  }
+}, {
+  timestamps: true,
+  collection: 'applications',
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
+});
 
-export default mongoose.model('Application', applicationSchema);
+// Indexes
+applicationSchema.index({ createdAt: -1 });
+
+// Virtual aliases for clean compatibility
+applicationSchema.virtual('id').get(function () { return this.applicationId; });
+applicationSchema.virtual('tape').get(function () { return this.performanceVideo; });
+applicationSchema.virtual('bio').get(function () { return this.shortIntroduction; });
+applicationSchema.virtual('exp').get(function () { return this.experience; });
+
+export default mongoose.model('Application', applicationSchema, 'applications');

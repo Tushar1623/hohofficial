@@ -180,7 +180,7 @@ export const Tickets = () => {
           </div>
         ) : (
           <div className="empty-event-card text-center">
-            <h3>Ticket booking coming soon.</h3>
+            <h3>Tickets will be available soon.</h3>
             <p>Tour dates and ticket allocations will be announced here shortly.</p>
           </div>
         )}

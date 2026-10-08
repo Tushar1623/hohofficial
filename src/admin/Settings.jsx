@@ -5,8 +5,8 @@ export const Settings = () => {
   const [settings, setSettings] = useState({
     siteName: 'House of Humour',
     tagline: "India's Biggest Stand-Up Comedy Talent Hunt",
-    contactNumber: '+91 98301 22345',
-    email: 'auditions@houseofhumour.in',
+    contactNumber: '',
+    email: '',
     instagram: '',
     youtube: ''
   });

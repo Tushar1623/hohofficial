@@ -1,49 +1,71 @@
 import { Router } from 'express';
-import Settings from '../models/Settings.js';
+import SiteSettings from '../models/SiteSettings.js';
 import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
 
-// GET settings (Public, no sensitive fields)
+// Default public brand identity if database has no record yet
+const DEFAULT_BRAND_IDENTITY = {
+  siteName: 'House of Humour',
+  tagline: "India's Biggest Stand-Up Comedy Talent Hunt",
+  contactNumber: '',
+  email: '',
+  instagram: '',
+  youtube: ''
+};
+
+// GET /api/settings (Public: returns public brand and contact settings)
 router.get('/', async (req, res) => {
   try {
-    let settings = await Settings.findOne({ key: 'site_settings' });
+    const settings = await SiteSettings.findOne({ key: 'site_settings' });
     if (!settings) {
-      return res.json({
-        siteName: 'House of Humour',
-        tagline: "India's Biggest Stand-Up Comedy Talent Hunt",
-        contactNumber: '',
-        email: '',
-        instagram: '',
-        youtube: ''
-      });
+      return res.json(DEFAULT_BRAND_IDENTITY);
     }
 
-    // Exclude any internal credentials from public view
     res.json({
-      siteName: settings.siteName,
-      tagline: settings.tagline,
-      contactNumber: settings.contactNumber,
-      email: settings.email,
-      instagram: settings.instagram,
-      youtube: settings.youtube
+      siteName: settings.siteName || DEFAULT_BRAND_IDENTITY.siteName,
+      tagline: settings.tagline || DEFAULT_BRAND_IDENTITY.tagline,
+      contactNumber: settings.contactNumber || '',
+      email: settings.email || '',
+      instagram: settings.instagram || '',
+      youtube: settings.youtube || ''
     });
   } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch settings: ' + err.message });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch settings',
+      code: 'SERVER_ERROR'
+    });
   }
 });
 
-// PUT update settings (Admin only)
+// PUT /api/settings (Admin only: update site settings)
 router.put('/', requireAuth, async (req, res) => {
   try {
-    const updated = await Settings.findOneAndUpdate(
+    const { siteName, tagline, contactNumber, email, instagram, youtube } = req.body;
+
+    const updated = await SiteSettings.findOneAndUpdate(
       { key: 'site_settings' },
-      { $set: req.body },
+      {
+        $set: {
+          siteName: siteName?.trim() || 'House of Humour',
+          tagline: tagline?.trim() || "India's Biggest Stand-Up Comedy Talent Hunt",
+          contactNumber: contactNumber?.trim() || '',
+          email: email?.trim() || '',
+          instagram: instagram?.trim() || '',
+          youtube: youtube?.trim() || ''
+        }
+      },
       { new: true, upsert: true }
     );
+
     res.json(updated);
   } catch (err) {
-    res.status(400).json({ error: 'Failed to save settings: ' + err.message });
+    res.status(400).json({
+      success: false,
+      error: 'Failed to save settings: ' + err.message,
+      code: 'SERVER_ERROR'
+    });
   }
 });
 

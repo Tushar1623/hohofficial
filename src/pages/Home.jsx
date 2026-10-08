@@ -93,8 +93,8 @@ export const Home = () => {
           ) : (
             <div className="empty-event-card text-center">
               <span className="material-symbols-outlined" style={{ fontSize: '48px', color: 'var(--gray)' }}>event_busy</span>
-              <h3>Next HoH event coming soon.</h3>
-              <p>Registrations and new tour cities will be announced shortly.</p>
+              <h3>Next event will be announced soon.</h3>
+              <p>Tour dates and audition details will be announced shortly.</p>
               <div style={{ marginTop: '16px' }}>
                 <Link to="/participate" className="btn btn-primary btn-sm">
                   AUDITION FOR FUTURE DATES
