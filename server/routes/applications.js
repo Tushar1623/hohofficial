@@ -1,173 +1,130 @@
 import { Router } from 'express';
-import crypto from 'crypto';
 import Application from '../models/Application.js';
 import { requireAuth } from '../middleware/auth.js';
+import { requireDatabase } from '../middleware/database.js';
+import { generateApplicationId } from '../utils/applicationId.js';
+import { validateApplicationInput, escapeRegex, VALID_APPLICATION_STATUSES } from '../utils/validation.js';
 
 const router = Router();
 
-// Basic email regex validator
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-// Basic URL validator
-function isValidUrl(str) {
-  try {
-    const url = new URL(str);
-    return url.protocol === 'http:' || url.protocol === 'https:';
-  } catch {
-    return false;
-  }
-}
-
 // GET /api/applications (Admin only, safe search)
-router.get('/', requireAuth, async (req, res) => {
+router.get('/', requireAuth, requireDatabase, async (req, res, next) => {
   try {
     const { search, status } = req.query;
-    let query = {};
+    const query = {};
 
-    if (status && ['PENDING', 'SHORTLISTED', 'APPROVED', 'REJECTED'].includes(status)) {
+    if (status && VALID_APPLICATION_STATUSES.includes(status)) {
       query.status = status;
     }
 
     if (search && typeof search === 'string' && search.trim()) {
-      // Escape special characters to prevent regex injection / ReDoS
-      const escaped = search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const regex = new RegExp(escaped, 'i');
+      const safeSearch = escapeRegex(search);
+      const regex = new RegExp(safeSearch, 'i');
       query.$or = [
         { name: regex },
-        { city: regex },
         { email: regex },
         { phone: regex },
-        { applicationId: regex }
+        { applicationId: regex },
+        { city: regex },
+        { status: regex }
       ];
     }
 
-    const apps = await Application.find(query).sort({ createdAt: -1 });
-    res.json(apps);
+    const applications = await Application.find(query).sort({ createdAt: -1 });
+    res.json(applications);
   } catch (err) {
-    console.error('Failed to query applications:', err.message);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch applications',
-      code: 'SERVER_ERROR'
+    next(err);
+  }
+});
+
+// GET /api/applications/:id (Admin only: fetch single application)
+router.get('/:id', requireAuth, requireDatabase, async (req, res, next) => {
+  try {
+    const idParam = req.params.id;
+    const application = await Application.findOne({
+      $or: [{ applicationId: idParam }, { _id: idParam }]
     });
+
+    if (!application) {
+      return res.status(404).json({
+        success: false,
+        message: 'Application not found',
+        code: 'NOT_FOUND'
+      });
+    }
+
+    res.json(application);
+  } catch (err) {
+    next(err);
   }
 });
 
 // POST /api/applications (Public contestant audition submission)
-router.post('/', async (req, res) => {
-  try {
-    const name = (req.body.name || '').trim();
-    const phone = (req.body.phone || '').trim();
-    const email = (req.body.email || '').trim().toLowerCase();
-    const city = (req.body.city || '').trim();
-    const performanceVideo = (req.body.performanceVideo || req.body.tape || '').trim();
-    const shortIntroduction = (req.body.shortIntroduction || req.body.bio || '').trim();
-    const instagram = (req.body.instagram || '').trim();
-    const youtube = (req.body.youtube || '').trim();
-    const experience = (req.body.experience || req.body.exp || '').trim();
-
-    // Field validations
-    if (!name) {
-      return res.status(400).json({
-        success: false,
-        error: 'Full name is required',
-        code: 'VALIDATION_ERROR'
-      });
-    }
-    if (!phone || phone.replace(/\D/g, '').length < 10) {
-      return res.status(400).json({
-        success: false,
-        error: 'Valid phone number with at least 10 digits is required',
-        code: 'VALIDATION_ERROR'
-      });
-    }
-    if (!email || !EMAIL_REGEX.test(email)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Valid email address is required',
-        code: 'VALIDATION_ERROR'
-      });
-    }
-    if (!city) {
-      return res.status(400).json({
-        success: false,
-        error: 'City is required',
-        code: 'VALIDATION_ERROR'
-      });
-    }
-    if (!performanceVideo || !isValidUrl(performanceVideo)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Valid performance video URL (YouTube, Drive, or Reel) is required',
-        code: 'VALIDATION_ERROR'
-      });
-    }
-    if (!shortIntroduction) {
-      return res.status(400).json({
-        success: false,
-        error: 'Short introduction is required',
-        code: 'VALIDATION_ERROR'
-      });
-    }
-
-    // Duplicate submission check: prevent spamming duplicate pending applications
-    const existingPending = await Application.findOne({
-      email,
-      status: 'PENDING'
+router.post('/', requireDatabase, async (req, res, next) => {
+  // 1. Validate request body and extract sanitized fields (Section 9 & 10)
+  const { isValid, errors, sanitized } = validateApplicationInput(req.body);
+  if (!isValid) {
+    return res.status(400).json({
+      success: false,
+      message: errors[0],
+      code: 'VALIDATION_ERROR',
+      errors
     });
+  }
 
-    if (existingPending) {
+  try {
+    // 2. Prevent duplicate pending applications from the same email
+    const existing = await Application.findOne({
+      email: sanitized.email,
+      status: 'PENDING'
+    }).select('applicationId');
+
+    if (existing) {
       return res.status(409).json({
         success: false,
-        error: 'An application with this email has already been submitted and is currently under review.',
+        message: 'An application with this email address has already been submitted and is currently under review.',
         code: 'DUPLICATE'
       });
     }
 
-    // Generate collision-resistant unique application ID on the server
-    const suffix = crypto.randomBytes(3).toString('hex').toUpperCase();
-    const applicationId = `HOH-2026-${suffix}`;
+    // 3. Generate collision-resistant unique application ID on the backend
+    const applicationId = await generateApplicationId();
 
-    const created = await Application.create({
+    // 4. Save using Mongoose and wait for MongoDB confirmation
+    const saved = await Application.create({
       applicationId,
-      name,
-      phone,
-      email,
-      city,
-      performanceVideo,
-      shortIntroduction,
-      instagram,
-      youtube,
-      experience,
+      ...sanitized,
       status: 'PENDING'
     });
 
-    res.status(201).json({
+    // 5. Return confirmed saved applicationId (Section 9)
+    return res.status(201).json({
       success: true,
-      applicationId: created.applicationId,
-      id: created.applicationId,
-      application: created
+      message: 'Application submitted successfully',
+      applicationId: saved.applicationId,
+      id: saved.applicationId,
+      data: saved
     });
   } catch (err) {
-    console.error('Failed to save application to MongoDB:', err.message);
-    res.status(500).json({
+    console.error('Error saving application to MongoDB:', err.message);
+    return res.status(503).json({
       success: false,
-      error: 'Unable to submit your application. Please try again.',
-      code: 'SERVER_ERROR'
+      message: 'Application could not be saved.',
+      code: 'APPLICATION_SAVE_FAILED'
     });
   }
 });
 
-// PUT /api/applications/:id (Admin only: update status)
-router.put('/:id', requireAuth, async (req, res) => {
+// PATCH & PUT /api/applications/:id (Admin only: update status)
+const updateApplicationHandler = async (req, res, next) => {
   try {
     const idParam = req.params.id;
     const { status } = req.body;
 
-    if (status && !['PENDING', 'SHORTLISTED', 'APPROVED', 'REJECTED'].includes(status)) {
+    if (status && !VALID_APPLICATION_STATUSES.includes(status)) {
       return res.status(400).json({
         success: false,
-        error: 'Invalid application status',
+        message: `Invalid application status: ${status}. Allowed: ${VALID_APPLICATION_STATUSES.join(', ')}`,
         code: 'VALIDATION_ERROR'
       });
     }
@@ -175,29 +132,28 @@ router.put('/:id', requireAuth, async (req, res) => {
     const updated = await Application.findOneAndUpdate(
       { $or: [{ applicationId: idParam }, { _id: idParam }] },
       { $set: req.body },
-      { new: true }
+      { new: true, runValidators: true }
     );
 
     if (!updated) {
       return res.status(404).json({
         success: false,
-        error: 'Application not found',
+        message: 'Application not found',
         code: 'NOT_FOUND'
       });
     }
 
     res.json(updated);
   } catch (err) {
-    res.status(400).json({
-      success: false,
-      error: 'Failed to update application: ' + err.message,
-      code: 'SERVER_ERROR'
-    });
+    next(err);
   }
-});
+};
 
-// DELETE /api/applications/:id (Admin only)
-router.delete('/:id', requireAuth, async (req, res) => {
+router.patch('/:id', requireAuth, requireDatabase, updateApplicationHandler);
+router.put('/:id', requireAuth, requireDatabase, updateApplicationHandler);
+
+// DELETE /api/applications/:id (Admin only: delete application)
+router.delete('/:id', requireAuth, requireDatabase, async (req, res, next) => {
   try {
     const idParam = req.params.id;
     const deleted = await Application.findOneAndDelete({
@@ -207,18 +163,18 @@ router.delete('/:id', requireAuth, async (req, res) => {
     if (!deleted) {
       return res.status(404).json({
         success: false,
-        error: 'Application not found',
+        message: 'Application not found',
         code: 'NOT_FOUND'
       });
     }
 
-    res.json({ success: true, id: idParam });
-  } catch (err) {
-    res.status(500).json({
-      success: false,
-      error: 'Failed to delete application',
-      code: 'SERVER_ERROR'
+    res.json({
+      success: true,
+      message: 'Application deleted successfully',
+      id: idParam
     });
+  } catch (err) {
+    next(err);
   }
 });
 

@@ -2,11 +2,13 @@ import { Router } from 'express';
 import crypto from 'crypto';
 import Event from '../models/Event.js';
 import { requireAuth } from '../middleware/auth.js';
+import { requireDatabase } from '../middleware/database.js';
+import { VALID_EVENT_STATUSES } from '../utils/validation.js';
 
 const router = Router();
 
 // GET /api/events/next (Public: nearest published upcoming event)
-router.get('/next', async (req, res) => {
+router.get('/next', requireDatabase, async (req, res, next) => {
   try {
     const nowIso = new Date().toISOString();
     const nextEvent = await Event.findOne({
@@ -17,31 +19,22 @@ router.get('/next', async (req, res) => {
 
     res.json(nextEvent || null);
   } catch (err) {
-    console.error('Failed to query next event:', err.message);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch next event',
-      code: 'SERVER_ERROR'
-    });
+    next(err);
   }
 });
 
 // GET /api/events (Public / Admin: list events)
-router.get('/', async (req, res) => {
+router.get('/', requireDatabase, async (req, res, next) => {
   try {
     const events = await Event.find().sort({ dateTime: 1, createdAt: -1 });
     res.json(events);
   } catch (err) {
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch events',
-      code: 'SERVER_ERROR'
-    });
+    next(err);
   }
 });
 
-// GET /api/events/:id (Public: get event by ID)
-router.get('/:id', async (req, res) => {
+// GET /api/events/:id (Public: get single event)
+router.get('/:id', requireDatabase, async (req, res, next) => {
   try {
     const idParam = req.params.id;
     const event = await Event.findOne({
@@ -51,51 +44,47 @@ router.get('/:id', async (req, res) => {
     if (!event) {
       return res.status(404).json({
         success: false,
-        error: 'Event not found',
+        message: 'Event not found',
         code: 'NOT_FOUND'
       });
     }
 
     res.json(event);
   } catch (err) {
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch event',
-      code: 'SERVER_ERROR'
-    });
+    next(err);
   }
 });
 
 // POST /api/events (Admin only: create event)
-router.post('/', requireAuth, async (req, res) => {
+router.post('/', requireAuth, requireDatabase, async (req, res, next) => {
   try {
     const { title, city, venue, dateTime, prize, generalPrice, vipPrice, bookingUrl, description, status, published } = req.body;
 
     if (!title?.trim()) {
       return res.status(400).json({
         success: false,
-        error: 'Event title is required',
+        message: 'Event title is required',
         code: 'VALIDATION_ERROR'
       });
     }
     if (!city?.trim()) {
       return res.status(400).json({
         success: false,
-        error: 'City is required',
+        message: 'City is required',
         code: 'VALIDATION_ERROR'
       });
     }
     if (!venue?.trim()) {
       return res.status(400).json({
         success: false,
-        error: 'Venue is required',
+        message: 'Venue is required',
         code: 'VALIDATION_ERROR'
       });
     }
     if (!dateTime) {
       return res.status(400).json({
         success: false,
-        error: 'Date and time is required',
+        message: 'Date and time is required',
         code: 'VALIDATION_ERROR'
       });
     }
@@ -113,23 +102,18 @@ router.post('/', requireAuth, async (req, res) => {
       vipPrice: Number(vipPrice) || 0,
       bookingUrl: bookingUrl?.trim() || '',
       description: description?.trim() || '',
-      status: status || 'UPCOMING',
+      status: VALID_EVENT_STATUSES.includes(status) ? status : 'UPCOMING',
       published: published !== false
     });
 
     res.status(201).json(created);
   } catch (err) {
-    console.error('Failed to create event:', err.message);
-    res.status(400).json({
-      success: false,
-      error: 'Failed to create event: ' + err.message,
-      code: 'SERVER_ERROR'
-    });
+    next(err);
   }
 });
 
-// PUT /api/events/:id (Admin only: update event)
-router.put('/:id', requireAuth, async (req, res) => {
+// PATCH & PUT /api/events/:id (Admin only: update event)
+const updateEventHandler = async (req, res, next) => {
   try {
     const idParam = req.params.id;
     const updateData = { ...req.body };
@@ -153,23 +137,22 @@ router.put('/:id', requireAuth, async (req, res) => {
     if (!updated) {
       return res.status(404).json({
         success: false,
-        error: 'Event not found',
+        message: 'Event not found',
         code: 'NOT_FOUND'
       });
     }
 
     res.json(updated);
   } catch (err) {
-    res.status(400).json({
-      success: false,
-      error: 'Failed to update event: ' + err.message,
-      code: 'SERVER_ERROR'
-    });
+    next(err);
   }
-});
+};
+
+router.patch('/:id', requireAuth, requireDatabase, updateEventHandler);
+router.put('/:id', requireAuth, requireDatabase, updateEventHandler);
 
 // DELETE /api/events/:id (Admin only: delete event)
-router.delete('/:id', requireAuth, async (req, res) => {
+router.delete('/:id', requireAuth, requireDatabase, async (req, res, next) => {
   try {
     const idParam = req.params.id;
     const deleted = await Event.findOneAndDelete({
@@ -179,18 +162,18 @@ router.delete('/:id', requireAuth, async (req, res) => {
     if (!deleted) {
       return res.status(404).json({
         success: false,
-        error: 'Event not found',
+        message: 'Event not found',
         code: 'NOT_FOUND'
       });
     }
 
-    res.json({ success: true, id: idParam });
-  } catch (err) {
-    res.status(500).json({
-      success: false,
-      error: 'Failed to delete event',
-      code: 'SERVER_ERROR'
+    res.json({
+      success: true,
+      message: 'Event deleted successfully',
+      id: idParam
     });
+  } catch (err) {
+    next(err);
   }
 });
 

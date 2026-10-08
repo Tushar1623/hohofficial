@@ -1,0 +1,71 @@
+import express from 'express';
+import cors from 'cors';
+import { getDatabaseStatus } from './db.js';
+
+import applicationsRouter from './routes/applications.js';
+import eventsRouter from './routes/events.js';
+import videoRouter from './routes/video.js';
+import ticketsRouter from './routes/tickets.js';
+import settingsRouter from './routes/settings.js';
+import authRouter from './routes/auth.js';
+
+import notFound from './middleware/notFound.js';
+import errorHandler from './middleware/errorHandler.js';
+
+const app = express();
+
+// Allowed CORS origins
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  process.env.FRONTEND_URL
+].filter(Boolean);
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Blocked by CORS policy'));
+    }
+  },
+  credentials: true
+}));
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Health Check Endpoint (Section 7)
+app.get('/api/health', (req, res) => {
+  const dbStatus = getDatabaseStatus();
+  if (dbStatus === 'connected') {
+    return res.status(200).json({
+      success: true,
+      server: 'ok',
+      database: 'connected'
+    });
+  } else {
+    return res.status(503).json({
+      success: false,
+      server: 'ok',
+      database: 'disconnected',
+      code: 'DATABASE_UNAVAILABLE'
+    });
+  }
+});
+
+// Mount Routes (Section 4)
+app.use('/api/applications', applicationsRouter);
+app.use('/api/events', eventsRouter);
+app.use('/api/video', videoRouter);
+app.use('/api/tickets', ticketsRouter);
+app.use('/api/settings', settingsRouter);
+app.use('/api/auth', authRouter);
+
+// 404 Handler
+app.use('/api', notFound);
+
+// Global Error Handler
+app.use(errorHandler);
+
+export default app;

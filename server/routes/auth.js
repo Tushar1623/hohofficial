@@ -4,7 +4,7 @@ import { createAdminSession, revokeAdminSession, requireAuth } from '../middlewa
 const router = Router();
 
 // POST /api/auth/login
-router.post('/login', async (req, res) => {
+router.post('/login', async (req, res, next) => {
   try {
     const password = req.body.password || req.body.passcode;
     const configuredPassword = process.env.ADMIN_PASSWORD;
@@ -12,7 +12,7 @@ router.post('/login', async (req, res) => {
     if (!configuredPassword) {
       return res.status(500).json({
         success: false,
-        error: 'ADMIN_PASSWORD is not configured on the server',
+        message: 'ADMIN_PASSWORD is not configured on the server',
         code: 'MISSING_CONFIG'
       });
     }
@@ -20,43 +20,44 @@ router.post('/login', async (req, res) => {
     if (!password || password !== configuredPassword) {
       return res.status(401).json({
         success: false,
-        error: 'Invalid admin password.',
+        message: 'Invalid admin password.',
         code: 'UNAUTHORIZED'
       });
     }
 
     const token = await createAdminSession();
-    res.json({ success: true, token });
-  } catch (err) {
-    console.error('Login processing error:', err.message);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to process login',
-      code: 'SERVER_ERROR'
+    res.json({
+      success: true,
+      token,
+      message: 'Admin authenticated successfully'
     });
+  } catch (err) {
+    next(err);
   }
 });
 
 // POST /api/auth/logout
-router.post('/logout', async (req, res) => {
+router.post('/logout', async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) {
       await revokeAdminSession(authHeader.slice(7).trim());
     }
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({
-      success: false,
-      error: 'Failed to process logout',
-      code: 'SERVER_ERROR'
+    res.json({
+      success: true,
+      message: 'Admin logged out successfully'
     });
+  } catch (err) {
+    next(err);
   }
 });
 
 // GET /api/auth/verify
 router.get('/verify', requireAuth, (req, res) => {
-  res.json({ success: true, authenticated: true });
+  res.json({
+    success: true,
+    authenticated: true
+  });
 });
 
 export default router;

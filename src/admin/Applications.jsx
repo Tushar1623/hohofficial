@@ -6,6 +6,7 @@ export const Applications = () => {
   const [search, setSearch] = useState('');
   const [selectedApp, setSelectedApp] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [dbError, setDbError] = useState(null);
 
   useEffect(() => {
     loadApps(search);
@@ -14,10 +15,17 @@ export const Applications = () => {
   async function loadApps(searchTerm = '') {
     try {
       setLoading(true);
+      setDbError(null);
       const data = await api.getApplications(searchTerm);
       setApps(data || []);
     } catch (err) {
       console.error('Failed to load applications:', err);
+      if (err.code === 'DATABASE_UNAVAILABLE' || err.status === 503) {
+        setDbError('Database unavailable.');
+      } else {
+        setDbError(err.message || 'Failed to load applications.');
+      }
+      setApps([]);
     } finally {
       setLoading(false);
     }
@@ -198,9 +206,13 @@ export const Applications = () => {
       {/* Applications Table */}
       {loading ? (
         <div className="admin-card text-center"><p>Loading applications...</p></div>
+      ) : dbError ? (
+        <div className="admin-card text-center">
+          <p style={{ color: 'var(--red, #ef4444)', fontWeight: 600 }}>{dbError}</p>
+        </div>
       ) : apps.length === 0 ? (
         <div className="admin-card text-center">
-          <p>No applications match your search or filter.</p>
+          <p>{search ? 'No applications match your search or filter.' : 'No applications submitted yet.'}</p>
         </div>
       ) : (
         <div className="admin-card table-responsive">
@@ -217,10 +229,12 @@ export const Applications = () => {
             </thead>
             <tbody>
               {apps.map((a) => (
-                <tr key={a.id}>
+                <tr key={a.applicationId || a.id || a._id}>
                   <td>
                     <strong>{a.name}</strong>
-                    <div style={{ fontSize: '11px', color: 'var(--gray)', fontFamily: 'var(--font-mono)' }}>{a.id}</div>
+                    <div style={{ fontSize: '11px', color: 'var(--gray)', fontFamily: 'var(--font-mono)' }}>
+                      {a.applicationId || a.id}
+                    </div>
                   </td>
                   <td style={{ fontSize: '13px' }}>
                     <div>{a.phone}</div>
@@ -228,15 +242,15 @@ export const Applications = () => {
                   </td>
                   <td style={{ fontSize: '13px' }}>{a.city}</td>
                   <td>
-                    {a.tape ? (
+                    {(a.performanceVideo || a.tape) ? (
                       <a
-                        href={a.tape}
+                        href={a.performanceVideo || a.tape}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="video-link-tag"
                       >
                         <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>play_circle</span>
-                        <span>View Tape</span>
+                        <span>View Video</span>
                       </a>
                     ) : (
                       <span className="text-muted">None</span>
@@ -258,7 +272,7 @@ export const Applications = () => {
                       <button
                         type="button"
                         className="btn-icon success"
-                        onClick={() => handleStatusChange(a.id, 'APPROVED')}
+                        onClick={() => handleStatusChange(a.applicationId || a.id, 'APPROVED')}
                         title="Approve"
                       >
                         <span className="material-symbols-outlined">check</span>
@@ -266,7 +280,7 @@ export const Applications = () => {
                       <button
                         type="button"
                         className="btn-icon danger"
-                        onClick={() => handleDelete(a.id)}
+                        onClick={() => handleDelete(a.applicationId || a.id)}
                         title="Delete"
                       >
                         <span className="material-symbols-outlined">delete</span>

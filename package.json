@@ -6,9 +6,7 @@
   "scripts": {
     "dev": "vite",
     "server": "node server/index.js",
-    "db:clean": "node scripts/clean-dummy-data.js",
-    "db:clean:dry": "node scripts/clean-dummy-data.js --dry-run",
-    "db:reset": "node scripts/db-reset.js",
+    "db:reset": "node server/scripts/resetDatabase.js",
     "build": "vite build",
     "preview": "vite preview"
   },

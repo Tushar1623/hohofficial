@@ -50,17 +50,13 @@ export const Dashboard = () => {
 
       {/* Database Connection Banner */}
       {dbStatus && (
-        <div className={`db-status-banner ${dbStatus.database?.connected ? 'connected' : 'disconnected'}`}>
+        <div className={`db-status-banner ${dbStatus.database === 'connected' ? 'connected' : 'disconnected'}`}>
           <span className="material-symbols-outlined">
-            {dbStatus.database?.connected ? 'cloud_done' : 'cloud_off'}
+            {dbStatus.database === 'connected' ? 'cloud_done' : 'cloud_off'}
           </span>
           <div>
             <strong>MongoDB Status: </strong>
-            {dbStatus.database?.connected ? (
-              <span>Connected to Atlas Cluster</span>
-            ) : (
-              <span>Local Storage Active (MongoDB: {dbStatus.database?.error || 'Offline'})</span>
-            )}
+            <span>{dbStatus.database === 'connected' ? 'Connected' : 'Disconnected'}</span>
           </div>
         </div>
       )}

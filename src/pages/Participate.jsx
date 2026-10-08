@@ -7,16 +7,16 @@ export const Participate = () => {
     phone: '',
     email: '',
     city: '',
-    tape: '',
-    bio: '',
+    performanceVideo: '',
+    shortIntroduction: '',
     instagram: '',
     youtube: '',
-    exp: ''
+    experience: ''
   });
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [submittedApp, setSubmittedApp] = useState(null);
+  const [submittedAppId, setSubmittedAppId] = useState(null);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -25,45 +25,80 @@ export const Participate = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) {
+      e.preventDefault();
+    }
+    if (loading) return; // Prevent double submission (Section 13)
+
     setError(null);
 
     // Validate required fields
     if (!formData.name.trim()) return setError('Please enter your full name.');
     if (!formData.phone.trim()) return setError('Please enter your phone number.');
     if (!formData.email.trim()) return setError('Please enter a valid email address.');
-    if (!formData.city.trim()) return setError('Please enter your city.');
-    if (!formData.tape.trim()) return setError('Please provide a performance video link (YouTube, Drive, or Reel).');
-    if (!formData.bio.trim()) return setError('Please provide a short introduction about yourself.');
+    if (!formData.city.trim()) return setError('Please enter your city / circuit zone.');
+    if (!formData.performanceVideo.trim()) return setError('Please provide a performance video URL (YouTube, Drive, or Reel).');
+    if (!formData.shortIntroduction.trim()) return setError('Please provide a short introduction about yourself.');
 
     try {
       setLoading(true);
-      const res = await api.submitApplication(formData);
-      if (res && res.id) {
-        setSubmittedApp(res);
+
+      // Section 10: Send exact payload
+      const payload = {
+        name: formData.name.trim(),
+        phone: formData.phone.trim(),
+        email: formData.email.trim(),
+        city: formData.city.trim(),
+        performanceVideo: formData.performanceVideo.trim(),
+        shortIntroduction: formData.shortIntroduction.trim(),
+        instagram: formData.instagram.trim(),
+        youtube: formData.youtube.trim(),
+        experience: formData.experience.trim()
+      };
+
+      const res = await api.submitApplication(payload);
+
+      // If HTTP 201: show success, display real application ID
+      const appId = res?.applicationId || res?.id || res?.data?.applicationId;
+      if (appId) {
+        setSubmittedAppId(appId);
+        // Reset form upon success (Section 13)
+        setFormData({
+          name: '',
+          phone: '',
+          email: '',
+          city: '',
+          performanceVideo: '',
+          shortIntroduction: '',
+          instagram: '',
+          youtube: '',
+          experience: ''
+        });
       } else {
-        throw new Error('Server did not return confirmation. Please try again.');
+        throw new Error('Application could not be saved.');
       }
     } catch (err) {
-      setError(err.message || 'Unable to submit application. Please check your connection and try again.');
+      // Section 14: If MongoDB is unavailable, show specific honest message
+      if (err.code === 'DATABASE_UNAVAILABLE' || err.status === 503) {
+        setError('Applications are temporarily unavailable. Please try again later.');
+      } else if (err.code === 'DUPLICATE' || err.status === 409) {
+        setError(err.message || 'An application with this email address has already been submitted.');
+      } else if (err.code === 'VALIDATION_ERROR' || err.status === 400) {
+        setError(err.message || 'Please check your form inputs and try again.');
+      } else if (!err.status || err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError')) {
+        setError('Applications are temporarily unavailable. Please try again later.');
+      } else {
+        setError(err.message || 'Applications are temporarily unavailable. Please try again later.');
+      }
+      // Note: formData is kept intact on error so user doesn't lose inputs (Section 13)
     } finally {
       setLoading(false);
     }
   };
 
-  const handleReset = () => {
-    setSubmittedApp(null);
-    setFormData({
-      name: '',
-      phone: '',
-      email: '',
-      city: '',
-      tape: '',
-      bio: '',
-      instagram: '',
-      youtube: '',
-      exp: ''
-    });
+  const handleResetForNewSubmission = () => {
+    setSubmittedAppId(null);
+    setError(null);
   };
 
   return (
@@ -77,30 +112,45 @@ export const Participate = () => {
           </p>
         </header>
 
-        {submittedApp ? (
+        {submittedAppId ? (
           <div className="submission-success-card text-center">
             <div className="success-icon-badge">
               <span className="material-symbols-outlined">check_circle</span>
             </div>
             <h2>APPLICATION SUBMITTED</h2>
-            <p className="success-msg">Your application has been received.</p>
+            <p className="success-msg">Your application has been received and saved.</p>
             <div className="app-id-pill">
               <span className="app-id-label">Application ID:</span>
-              <span className="app-id-val">{submittedApp.applicationId || submittedApp.id}</span>
+              <span className="app-id-val">{submittedAppId}</span>
             </div>
             <p className="success-subtext">
-              The HoH selection team reviews submissions on a rolling basis. If shortlisted, you will receive venue schedule and timing via WhatsApp or email.
+              The selection team reviews submissions on a rolling basis. If shortlisted, you will receive venue schedule and timing via WhatsApp or email.
             </p>
-            <button type="button" className="btn btn-secondary" onClick={handleReset}>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={handleResetForNewSubmission}
+            >
               SUBMIT ANOTHER APPLICATION
             </button>
           </div>
         ) : (
           <div className="form-container">
             {error && (
-              <div className="form-error-banner" role="alert">
-                <span className="material-symbols-outlined">error</span>
-                <span>{error}</span>
+              <div className="form-error-banner" role="alert" style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-start' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span className="material-symbols-outlined">error</span>
+                  <span>{error}</span>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-outline-secondary btn-sm"
+                  style={{ alignSelf: 'flex-start', marginTop: '4px' }}
+                  onClick={handleSubmit}
+                  disabled={loading}
+                >
+                  RETRY SUBMISSION
+                </button>
               </div>
             )}
 
@@ -164,29 +214,29 @@ export const Participate = () => {
               </div>
 
               <div className="form-group">
-                <label htmlFor="tape">Performance Video URL <span className="req">*</span></label>
+                <label htmlFor="performanceVideo">Performance Video URL <span className="req">*</span></label>
                 <input
-                  id="tape"
-                  name="tape"
+                  id="performanceVideo"
+                  name="performanceVideo"
                   type="url"
                   required
                   placeholder="https://youtube.com/watch?v=... or Google Drive / Reel"
-                  value={formData.tape}
+                  value={formData.performanceVideo}
                   onChange={handleChange}
                   disabled={loading}
                 />
-                <span className="field-hint">A 3–5 minute unedited stand-up clip, open mic video, or phone recording.</span>
+                <span className="field-hint">A stand-up clip, open mic video, or phone recording link.</span>
               </div>
 
               <div className="form-group">
-                <label htmlFor="bio">Short Introduction &amp; Style <span className="req">*</span></label>
+                <label htmlFor="shortIntroduction">Short Introduction &amp; Style <span className="req">*</span></label>
                 <textarea
-                  id="bio"
-                  name="bio"
+                  id="shortIntroduction"
+                  name="shortIntroduction"
                   rows="3"
                   required
                   placeholder="Tell us about your comedy style (crowd work, observational, dark humor, storytelling)..."
-                  value={formData.bio}
+                  value={formData.shortIntroduction}
                   onChange={handleChange}
                   disabled={loading}
                 />
@@ -225,13 +275,13 @@ export const Participate = () => {
               </div>
 
               <div className="form-group">
-                <label htmlFor="exp">Comedy Experience (Optional)</label>
+                <label htmlFor="experience">Comedy Experience (Optional)</label>
                 <input
-                  id="exp"
-                  name="exp"
+                  id="experience"
+                  name="experience"
                   type="text"
                   placeholder="e.g. 1st time audition, 6 months open mics, touring comic"
-                  value={formData.exp}
+                  value={formData.experience}
                   onChange={handleChange}
                   disabled={loading}
                 />
@@ -243,7 +293,7 @@ export const Participate = () => {
                 disabled={loading}
               >
                 {loading ? (
-                  <span>Submitting application...</span>
+                  <span>Submitting...</span>
                 ) : (
                   <>
                     <span className="material-symbols-outlined">send</span>

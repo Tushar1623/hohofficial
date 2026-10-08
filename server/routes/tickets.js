@@ -1,25 +1,22 @@
 import { Router } from 'express';
 import TicketSettings from '../models/TicketSettings.js';
 import { requireAuth } from '../middleware/auth.js';
+import { requireDatabase } from '../middleware/database.js';
 
 const router = Router();
 
 // GET /api/tickets (Public: get ticket settings or null)
-router.get('/', async (req, res) => {
+router.get('/', requireDatabase, async (req, res, next) => {
   try {
     const tickets = await TicketSettings.findOne({ key: 'ticket_settings' });
     res.json(tickets || null);
   } catch (err) {
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch ticket settings',
-      code: 'SERVER_ERROR'
-    });
+    next(err);
   }
 });
 
-// PUT /api/tickets (Admin only: update ticket settings)
-router.put('/', requireAuth, async (req, res) => {
+// PATCH & PUT /api/tickets (Admin only: update ticket settings)
+const updateTicketHandler = async (req, res, next) => {
   try {
     const { generalPrice, vipPrice, bookingUrl, availability } = req.body;
 
@@ -36,14 +33,17 @@ router.put('/', requireAuth, async (req, res) => {
       { new: true, upsert: true }
     );
 
-    res.json(updated);
-  } catch (err) {
-    res.status(400).json({
-      success: false,
-      error: 'Failed to update ticket settings: ' + err.message,
-      code: 'SERVER_ERROR'
+    res.json({
+      success: true,
+      message: 'Ticket settings updated successfully',
+      data: updated
     });
+  } catch (err) {
+    next(err);
   }
-});
+};
+
+router.patch('/', requireAuth, requireDatabase, updateTicketHandler);
+router.put('/', requireAuth, requireDatabase, updateTicketHandler);
 
 export default router;

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import SiteSettings from '../models/SiteSettings.js';
 import { requireAuth } from '../middleware/auth.js';
+import { requireDatabase } from '../middleware/database.js';
 
 const router = Router();
 
@@ -15,7 +16,7 @@ const DEFAULT_BRAND_IDENTITY = {
 };
 
 // GET /api/settings (Public: returns public brand and contact settings)
-router.get('/', async (req, res) => {
+router.get('/', async (req, res, next) => {
   try {
     const settings = await SiteSettings.findOne({ key: 'site_settings' });
     if (!settings) {
@@ -31,16 +32,13 @@ router.get('/', async (req, res) => {
       youtube: settings.youtube || ''
     });
   } catch (err) {
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch settings',
-      code: 'SERVER_ERROR'
-    });
+    // If database is disconnected, fallback to default brand identity
+    res.json(DEFAULT_BRAND_IDENTITY);
   }
 });
 
-// PUT /api/settings (Admin only: update site settings)
-router.put('/', requireAuth, async (req, res) => {
+// PATCH & PUT /api/settings (Admin only: update site settings)
+const updateSettingsHandler = async (req, res, next) => {
   try {
     const { siteName, tagline, contactNumber, email, instagram, youtube } = req.body;
 
@@ -59,14 +57,17 @@ router.put('/', requireAuth, async (req, res) => {
       { new: true, upsert: true }
     );
 
-    res.json(updated);
-  } catch (err) {
-    res.status(400).json({
-      success: false,
-      error: 'Failed to save settings: ' + err.message,
-      code: 'SERVER_ERROR'
+    res.json({
+      success: true,
+      message: 'Site settings updated successfully',
+      data: updated
     });
+  } catch (err) {
+    next(err);
   }
-});
+};
+
+router.patch('/', requireAuth, requireDatabase, updateSettingsHandler);
+router.put('/', requireAuth, requireDatabase, updateSettingsHandler);
 
 export default router;

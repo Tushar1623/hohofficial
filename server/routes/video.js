@@ -1,10 +1,11 @@
 import { Router } from 'express';
 import FeaturedVideo from '../models/FeaturedVideo.js';
 import { requireAuth } from '../middleware/auth.js';
+import { requireDatabase } from '../middleware/database.js';
+import { isValidUrl } from '../utils/validation.js';
 
 const router = Router();
 
-// Validate and extract YouTube Video ID
 function extractYouTubeId(url) {
   if (!url || typeof url !== 'string') return null;
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
@@ -13,36 +14,48 @@ function extractYouTubeId(url) {
 }
 
 // GET /api/video (Public: single featured video or null)
-router.get('/', async (req, res) => {
+router.get('/', requireDatabase, async (req, res, next) => {
   try {
     const video = await FeaturedVideo.findOne({ key: 'featured_video', isActive: true });
-    res.json(video || null);
-  } catch (err) {
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch featured video',
-      code: 'SERVER_ERROR'
+    if (!video) {
+      return res.json({
+        success: true,
+        video: null
+      });
+    }
+
+    return res.json({
+      success: true,
+      video,
+      // Top-level aliases for compatibility
+      title: video.title,
+      youtubeUrl: video.youtubeUrl,
+      thumbnail: video.thumbnail,
+      isActive: video.isActive,
+      id: video._id
     });
+  } catch (err) {
+    next(err);
   }
 });
 
-// PUT /api/video (Admin only: update featured video)
-router.put('/', requireAuth, async (req, res) => {
+// PATCH & PUT /api/video (Admin only: update featured video)
+const updateVideoHandler = async (req, res, next) => {
   try {
     const { title, youtubeUrl, thumbnail } = req.body;
 
     if (!title?.trim()) {
       return res.status(400).json({
         success: false,
-        error: 'Video title is required',
+        message: 'Video title is required',
         code: 'VALIDATION_ERROR'
       });
     }
 
-    if (!youtubeUrl?.trim()) {
+    if (!youtubeUrl?.trim() || !isValidUrl(youtubeUrl)) {
       return res.status(400).json({
         success: false,
-        error: 'YouTube URL is required',
+        message: 'A valid YouTube URL is required',
         code: 'VALIDATION_ERROR'
       });
     }
@@ -51,12 +64,11 @@ router.put('/', requireAuth, async (req, res) => {
     if (!videoId) {
       return res.status(400).json({
         success: false,
-        error: 'Invalid YouTube URL. Please provide a standard YouTube video link.',
+        message: 'Invalid YouTube URL format. Please provide a standard watch or share link.',
         code: 'VALIDATION_ERROR'
       });
     }
 
-    // Default to official YouTube HQ thumbnail if custom thumbnail is omitted
     const effectiveThumb = thumbnail?.trim() || `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
 
     const updated = await FeaturedVideo.findOneAndUpdate(
@@ -72,14 +84,17 @@ router.put('/', requireAuth, async (req, res) => {
       { new: true, upsert: true }
     );
 
-    res.json(updated);
-  } catch (err) {
-    res.status(400).json({
-      success: false,
-      error: 'Failed to update featured video: ' + err.message,
-      code: 'SERVER_ERROR'
+    res.json({
+      success: true,
+      message: 'Featured video updated successfully',
+      video: updated
     });
+  } catch (err) {
+    next(err);
   }
-});
+};
+
+router.patch('/', requireAuth, requireDatabase, updateVideoHandler);
+router.put('/', requireAuth, requireDatabase, updateVideoHandler);
 
 export default router;
