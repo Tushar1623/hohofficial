@@ -1,148 +1,152 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { api } from '../services/api';
+import { api } from '../services/api.js';
 
 export const Dashboard = () => {
+  const [nextEvent, setNextEvent] = useState(null);
   const [apps, setApps] = useState([]);
-  const [events, setEvents] = useState([]);
-  const [videos, setVideos] = useState([]);
-  const [talent, setTalent] = useState([]);
+  const [video, setVideo] = useState(null);
+  const [dbStatus, setDbStatus] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let mounted = true;
-    Promise.all([
-      api.getApplications(),
-      api.getEvents(),
-      api.getVideos(),
-      api.getTalent()
-    ]).then(([a, e, v, t]) => {
-      if (mounted) {
-        setApps(a);
-        setEvents(e);
-        setVideos(v);
-        setTalent(t);
-        setLoading(false);
+    async function load() {
+      try {
+        const [ev, appList, vid, db] = await Promise.all([
+          api.getNextEvent(),
+          api.getApplications(),
+          api.getFeaturedVideo(),
+          api.getDatabaseStatus()
+        ]);
+        if (mounted) {
+          setNextEvent(ev);
+          setApps(appList || []);
+          setVideo(vid);
+          setDbStatus(db);
+        }
+      } catch (err) {
+        console.error('Failed to load dashboard:', err);
+      } finally {
+        if (mounted) setLoading(false);
       }
-    });
+    }
+    load();
     return () => { mounted = false; };
   }, []);
 
-  const pendingCount = apps.filter((a) => a.status === 'pending').length;
-  const approvedCount = apps.filter((a) => a.status === 'approved').length;
-
-  if (loading) {
-    return <div style={{ padding: '40px', color: 'var(--gray)' }}>Loading dashboard...</div>;
-  }
+  const pendingApps = apps.filter((a) => a.status === 'PENDING').length;
+  const shortlistedApps = apps.filter((a) => a.status === 'SHORTLISTED').length;
+  const approvedApps = apps.filter((a) => a.status === 'APPROVED').length;
 
   return (
-    <div>
-      <div style={{ marginBottom: '24px' }}>
-        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '32px', color: '#FFF' }}>
-          TOUR DASHBOARD
-        </h1>
-        <p style={{ fontSize: '13px', color: 'var(--gray)' }}>
-          High-level overview of contestant applications, tour events, and published content.
-        </p>
-      </div>
-
-      {/* Clean Stat Cards */}
-      <div className="stat-cards-grid">
-        <div className="stat-card">
-          <span className="stat-card-label">APPLICATIONS</span>
-          <div className="stat-card-value">{apps.length}</div>
-          <p style={{ fontSize: '12px', color: 'var(--gray)', marginTop: '4px' }}>
-            {pendingCount} pending review • {approvedCount} approved
-          </p>
-        </div>
-
-        <div className="stat-card">
-          <span className="stat-card-label">TOUR CHAPTERS</span>
-          <div className="stat-card-value" style={{ color: 'var(--yellow)' }}>
-            {events.length}
-          </div>
-          <p style={{ fontSize: '12px', color: 'var(--gray)', marginTop: '4px' }}>Active regional stops</p>
-        </div>
-
-        <div className="stat-card">
-          <span className="stat-card-label">QUALIFIED TALENT</span>
-          <div className="stat-card-value" style={{ color: '#22c55e' }}>
-            {talent.length}
-          </div>
-          <p style={{ fontSize: '12px', color: 'var(--gray)', marginTop: '4px' }}>Comedians on leaderboard</p>
-        </div>
-
-        <div className="stat-card">
-          <span className="stat-card-label">VIDEO TAPES</span>
-          <div className="stat-card-value" style={{ color: '#60a5fa' }}>
-            {videos.length}
-          </div>
-          <p style={{ fontSize: '12px', color: 'var(--gray)', marginTop: '4px' }}>Published sets</p>
+    <div className="admin-page">
+      <div className="admin-page-header">
+        <div>
+          <h1 className="admin-page-title">Dashboard Overview</h1>
+          <p className="admin-page-desc">Summary of live events, applicant auditions, and featured content.</p>
         </div>
       </div>
 
-      {/* Recent Applications */}
-      <div className="card-section">
-        <div className="card-section-head">
+      {/* Database Connection Banner */}
+      {dbStatus && (
+        <div className={`db-status-banner ${dbStatus.database?.connected ? 'connected' : 'disconnected'}`}>
+          <span className="material-symbols-outlined">
+            {dbStatus.database?.connected ? 'cloud_done' : 'cloud_off'}
+          </span>
           <div>
-            <h3>RECENT AUDITION APPLICATIONS</h3>
-            <p style={{ fontSize: '13px', color: 'var(--gray)' }}>Newest submissions awaiting assessment</p>
+            <strong>MongoDB Status: </strong>
+            {dbStatus.database?.connected ? (
+              <span>Connected to Atlas Cluster</span>
+            ) : (
+              <span>Local Storage Active (MongoDB: {dbStatus.database?.error || 'Offline'})</span>
+            )}
           </div>
-          <Link to="/admin/applications" className="btn btn-secondary btn-sm">
-            View All ({apps.length})
-          </Link>
         </div>
+      )}
 
-        <div className="table-responsive">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>NAME</th>
-                <th>CITY</th>
-                <th>PHONE</th>
-                <th>TAPE</th>
-                <th>STATUS</th>
-              </tr>
-            </thead>
-            <tbody>
-              {apps.slice(0, 5).map((app) => (
-                <tr key={app.id}>
-                  <td style={{ fontFamily: 'var(--font-mono)', fontWeight: '700', color: 'var(--orange)' }}>
-                    {app.id}
-                  </td>
-                  <td style={{ fontWeight: '600' }}>{app.name}</td>
-                  <td>{app.city}</td>
-                  <td>
-                    <a
-                      href={`https://wa.me/${app.phone.replace(/[^0-9]/g, '')}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{ color: '#22c55e', textDecoration: 'none' }}
-                    >
-                      {app.phone}
-                    </a>
-                  </td>
-                  <td>
-                    {app.tape ? (
-                      <a href={app.tape} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--orange)', fontSize: '12px' }}>
-                        Watch Set
-                      </a>
-                    ) : (
-                      <span style={{ color: '#666' }}>No link</span>
-                    )}
-                  </td>
-                  <td>
-                    <span className={`status-badge status-${app.status || 'pending'}`}>
-                      {app.status || 'pending'}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      {loading ? (
+        <div className="admin-card text-center"><p>Loading dashboard overview...</p></div>
+      ) : (
+        <>
+          {/* Quick Stats Grid */}
+          <div className="admin-stats-grid">
+            <div className="stat-card">
+              <span className="stat-label">NEXT LIVE EVENT</span>
+              <span className="stat-val">{nextEvent ? nextEvent.city : 'None Set'}</span>
+              <span className="stat-sub">{nextEvent ? nextEvent.title : 'No upcoming event'}</span>
+              <Link to="/admin/events" className="stat-link">Manage Events &rarr;</Link>
+            </div>
+
+            <div className="stat-card">
+              <span className="stat-label">PENDING AUDITIONS</span>
+              <span className="stat-val stat-warning">{pendingApps}</span>
+              <span className="stat-sub">{apps.length} Total Submissions</span>
+              <Link to="/admin/applications" className="stat-link">Review Applications &rarr;</Link>
+            </div>
+
+            <div className="stat-card">
+              <span className="stat-label">SHORTLISTED COMICS</span>
+              <span className="stat-val stat-success">{shortlistedApps}</span>
+              <span className="stat-sub">{approvedApps} Approved</span>
+              <Link to="/admin/applications" className="stat-link">View Roster &rarr;</Link>
+            </div>
+
+            <div className="stat-card">
+              <span className="stat-label">FEATURED VIDEO</span>
+              <span className="stat-val" style={{ fontSize: '18px' }}>
+                {video?.title ? video.title.slice(0, 22) + '...' : 'None'}
+              </span>
+              <span className="stat-sub">Homepage Highlight</span>
+              <Link to="/admin/video" className="stat-link">Update Video &rarr;</Link>
+            </div>
+          </div>
+
+          {/* Quick Action Cards */}
+          <div className="admin-grid-2">
+            <div className="admin-card">
+              <h3 className="card-section-title">Next Scheduled Tour Event</h3>
+              {nextEvent ? (
+                <div className="overview-item-details">
+                  <p><strong>Title:</strong> {nextEvent.title}</p>
+                  <p><strong>City &amp; Venue:</strong> {nextEvent.city} • {nextEvent.venue}</p>
+                  <p><strong>Status:</strong> <span className="status-badge-inline">{nextEvent.status}</span></p>
+                  <p><strong>Prize Purse:</strong> {nextEvent.prize}</p>
+                  <div style={{ marginTop: '12px' }}>
+                    <Link to="/admin/events" className="btn btn-secondary btn-sm">Edit Event Details</Link>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-muted">No upcoming event is currently published.</p>
+              )}
+            </div>
+
+            <div className="admin-card">
+              <h3 className="card-section-title">Recent Audition Submissions</h3>
+              {apps.length > 0 ? (
+                <div className="recent-apps-list">
+                  {apps.slice(0, 4).map((a) => (
+                    <div key={a.id} className="recent-app-row">
+                      <div>
+                        <strong>{a.name}</strong>
+                        <span className="text-muted" style={{ marginLeft: '8px', fontSize: '12px' }}>({a.city})</span>
+                      </div>
+                      <span className={`status-pill pill-${a.status?.toLowerCase()}`}>{a.status}</span>
+                    </div>
+                  ))}
+                  <div style={{ marginTop: '12px' }}>
+                    <Link to="/admin/applications" className="btn btn-secondary btn-sm">View All Applications</Link>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-muted">No applications submitted yet.</p>
+              )}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };
+
+export default Dashboard;

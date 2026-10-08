@@ -3,10 +3,30 @@ import Event from '../models/Event.js';
 
 const router = Router();
 
+// GET nearest published future event (for Homepage & Tickets default)
+router.get('/next', async (req, res) => {
+  try {
+    const nowIso = new Date().toISOString();
+    // Find published events with dateTime >= now or status === 'UPCOMING'/'LIVE'
+    const nextEvent = await Event.findOne({
+      published: true,
+      $or: [
+        { dateTime: { $gte: nowIso } },
+        { status: 'LIVE' },
+        { status: 'UPCOMING' }
+      ]
+    }).sort({ dateTime: 1 });
+
+    res.json(nextEvent || null);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch next event: ' + err.message });
+  }
+});
+
 // GET all events
 router.get('/', async (req, res) => {
   try {
-    const events = await Event.find().sort({ targetEpoch: 1, createdAt: -1 });
+    const events = await Event.find().sort({ dateTime: 1, createdAt: -1 });
     res.json(events);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch events: ' + err.message });

@@ -1,0 +1,1036 @@
+HOUSE OF HUMOUR (HoH) WEBSITE
+CODEBASE SIMPLIFICATION + PRODUCT RESTRUCTURE PLAN
+
+Repository:
+Tushar1623/hohofficial
+
+OBJECTIVE
+=========
+Simplify the existing HoH React/Vite website and restructure it around the actual requirement:
+
+PUBLIC WEBSITE
+1. HOME
+2. PARTICIPATE
+3. TICKETS
+
+PRIVATE SYSTEM
+4. ADMIN PANEL
+
+The website should be simple, fast, reliable, mobile-first and easy to manage.
+
+Do NOT rebuild the entire website from scratch.
+Do NOT create a complicated entertainment portal.
+Do NOT add unnecessary features.
+Use the existing React/Vite foundation and remove unnecessary complexity.
+
+==================================================
+TARGET PRODUCT STRUCTURE
+==================================================
+
+                         HOUSE OF HUMOUR
+                                |
+                         PUBLIC WEBSITE
+                                |
+              +-----------------+-----------------+
+              |                 |                 |
+             HOME          PARTICIPATE          TICKETS
+              |                 |                 |
+         Next Event        Application         Booking
+              |                 |
+           YouTube          MongoDB
+              |                 ^
+              +-----------------+
+                                |
+                           ADMIN PANEL
+
+The frontend should be primarily a presentation layer.
+The Admin Panel controls the content.
+
+==================================================
+1. HOME PAGE
+==================================================
+
+The homepage should be extremely simple.
+
+NAVIGATION
+
+Desktop:
+HOH LOGO
+HOME
+PARTICIPATE
+TICKETS
+GET TICKETS
+
+Mobile:
+HOH LOGO
+MENU
+
+Mobile menu:
+HOME
+PARTICIPATE
+TICKETS
+
+ADMIN MUST NOT appear in public navigation.
+
+HOME CONTENT
+
+1. HoH introduction
+
+HOUSE OF HUMOUR
+
+India's Biggest Stand-Up Comedy Talent Hunt
+
+2. NEXT EVENT
+
+Display:
+Event Name
+City
+Date
+Time
+Venue
+Prize
+
+Buttons:
+[ PARTICIPATE ]
+[ GET TICKETS ]
+
+3. WATCH HOH
+
+Show ONE featured YouTube video.
+
+Admin controls:
+- YouTube URL
+- Video title
+- Thumbnail if needed
+
+Do not load multiple YouTube iframes.
+Prefer a thumbnail/card that opens YouTube when clicked.
+
+4. FOOTER
+
+Keep it simple:
+Home | Participate | Tickets
+
+==================================================
+2. REMOVE UNNECESSARY HOMEPAGE SECTIONS
+==================================================
+
+Remove these from the public homepage unless specifically needed later:
+- How It Works
+- Latest Videos
+- Talent section
+- Guests section
+- About section
+- Sponsors section
+- Social CTA
+- Large social sections
+- Multiple video sections
+- Large event directories
+
+The homepage should answer only:
+1. What is HoH?
+2. When is the next event?
+3. How do I participate or get tickets?
+
+==================================================
+3. PARTICIPATE PAGE
+==================================================
+
+Header:
+PARTICIPATE IN HOH
+
+Think you're funny?
+Prove it on stage.
+
+FORM
+
+Required:
+- Name
+- Phone Number
+- Email
+- City
+- Performance Video
+- Short Introduction
+
+Optional:
+- Instagram
+- YouTube
+- Comedy Experience
+
+Button:
+[ SUBMIT APPLICATION ]
+
+APPLICATION FLOW
+
+Participant
+    ↓
+React Form
+    ↓
+POST /api/applications
+    ↓
+Backend
+    ↓
+MongoDB
+    ↓
+Success
+
+After backend confirmation:
+
+APPLICATION SUBMITTED
+
+Your application has been received.
+
+Application ID:
+HOH-XXXX
+
+Do not show success unless the backend confirms the submission.
+Do not use localStorage as the permanent database.
+
+==================================================
+4. TICKETS PAGE
+==================================================
+
+Header:
+GET YOUR HOH TICKET
+
+Show:
+Event Name
+City
+Date
+Time
+Venue
+
+Ticket types:
+GENERAL
+₹XXX
+
+VIP
+₹XXX
+
+Button:
+[ BOOK NOW ]
+
+IMPORTANT:
+Do NOT fake payment.
+Do NOT display PAID, BOOKING CONFIRMED, YOU'RE IN, fake ticket IDs or fake QR codes unless a real payment system has confirmed the transaction.
+
+For the first version, use a real booking URL if available.
+Otherwise display:
+Ticket booking coming soon.
+
+Later:
+Frontend → Backend → Payment Gateway → Verification → MongoDB → Ticket → QR
+
+==================================================
+5. ADMIN PANEL
+==================================================
+
+Admin should be a simple CMS.
+
+Create:
+/admin/login
+
+After authentication:
+/admin
+
+Admin sections:
+- Dashboard
+- Event
+- Applications
+- Video
+- Tickets
+- Settings
+
+Do NOT create a large analytics dashboard.
+
+ADMIN EVENT MANAGEMENT
+
+Admin can manage:
+Event Name
+City
+Date
+Time
+Venue
+Description
+Prize
+General Ticket Price
+VIP Ticket Price
+Booking URL
+Published
+Status
+
+Status:
+UPCOMING
+LIVE
+COMPLETED
+
+The homepage automatically shows the nearest published future event.
+
+ADMIN APPLICATION MANAGEMENT
+
+Show:
+Name
+Phone
+Email
+City
+Date
+Performance Video
+Status
+
+Statuses:
+PENDING
+SHORTLISTED
+APPROVED
+REJECTED
+
+Actions:
+View
+Shortlist
+Approve
+Reject
+Delete
+
+Include search.
+Do not build complicated analytics.
+
+ADMIN VIDEO MANAGEMENT
+
+Fields:
+YouTube URL
+Video Title
+
+[ SAVE VIDEO ]
+
+Homepage displays the saved featured video.
+
+ADMIN TICKET MANAGEMENT
+
+Fields:
+General Ticket Price
+VIP Ticket Price
+Booking URL
+Ticket Availability
+
+ADMIN SETTINGS
+
+Basic:
+HoH Logo
+Brand Name
+Tagline
+Instagram
+YouTube
+Contact Number
+Email
+
+==================================================
+6. ROUTING
+==================================================
+
+Target public routes:
+/
+ /participate
+ /tickets
+
+Admin:
+ /admin/login
+ /admin
+ /admin/events
+ /admin/applications
+ /admin/video
+ /admin/tickets
+ /admin/settings
+
+Remove public routes that are no longer necessary:
+- /events
+- /events/:id
+- /watch
+- /talent
+- /about
+
+unless a future requirement specifically brings them back.
+
+==================================================
+7. APP CONTEXT SIMPLIFICATION
+==================================================
+
+The current AppContext manages too much global state.
+
+Reduce it dramatically.
+
+Do not store the entire HoH database in global React Context.
+
+Prefer:
+Page → API service → Backend
+
+Use global Context only for genuinely global state, such as:
+- authentication/session
+- small global UI state if required
+- a global toast only if actually needed
+
+==================================================
+8. REMOVE ACTIVE EVENT COMPLEXITY
+==================================================
+
+Do not rely on a manually selected activeEvent if unnecessary.
+
+Use events with:
+published
+dateTime
+
+Then:
+published events
+→ future events
+→ sort by dateTime
+→ nearest future event
+→ NEXT EVENT
+
+If no future event exists:
+Next HoH event coming soon.
+
+The current demo event is dated 2 October 2026 and is already past as of 8 October 2026. Do not keep it as the permanent homepage default.
+
+==================================================
+9. EVENT DATA MODEL
+==================================================
+
+Use actual machine-readable data.
+
+Example:
+
+{
+  title: "Mumbai Stand-Up Qualifier",
+  city: "Mumbai",
+  venue: "Example Venue",
+  dateTime: "2026-10-18T19:00:00+05:30",
+  prize: 20000,
+  generalPrice: 499,
+  vipPrice: 799,
+  bookingUrl: "",
+  published: true,
+  status: "UPCOMING"
+}
+
+Do not store presentation-formatted dates as the primary data.
+React should format date/time for display.
+
+==================================================
+10. API ARCHITECTURE
+==================================================
+
+Current prototype:
+React → AppContext → api.js → storage.js → localStorage
+
+Target:
+React → api.js → Express/Node.js → MongoDB
+
+Keep the service layer simple.
+
+Example methods:
+getNextEvent()
+getEvents()
+submitApplication()
+getApplications()
+updateApplication()
+getFeaturedVideo()
+updateFeaturedVideo()
+getTicketSettings()
+updateTicketSettings()
+getSettings()
+updateSettings()
+
+Do not create multiple unnecessary service abstraction layers.
+
+==================================================
+11. DATABASE
+==================================================
+
+MongoDB should become the shared source of truth.
+
+Participant submissions must not be stored only in browser localStorage.
+
+Correct flow:
+
+Participant Phone
+→ React
+→ POST /api/applications
+→ Backend
+→ MongoDB
+→ Admin Laptop
+→ GET /api/applications
+
+==================================================
+12. REMOVE DEMO DATA
+==================================================
+
+Remove fake production-looking data:
+- fake contestants
+- fake guests
+- fake sponsors
+- fake statistics
+- fake videos
+- fake event information
+- fake ticket confirmations
+- placeholder YouTube videos
+- fake QR codes
+
+If there is no content, show an empty state:
+No upcoming event announced yet.
+Videos coming soon.
+
+Never display fake content.
+
+==================================================
+13. VIDEO SYSTEM
+==================================================
+
+Simplify to ONE featured video.
+
+Data:
+{
+  title,
+  youtubeUrl,
+  thumbnail
+}
+
+Homepage:
+WATCH HOH
+[ Thumbnail ]
+Video title
+[ WATCH ]
+
+Do not load multiple YouTube iframes.
+Open YouTube when clicked.
+
+==================================================
+14. TICKET SYSTEM
+==================================================
+
+Remove the simulated ticket success flow.
+
+Do not generate a fake browser-only ticket.
+Do not generate fake payment confirmation.
+Do not generate a fake QR code.
+
+Until payment is properly integrated:
+Use an external booking URL or show ticket booking coming soon.
+
+==================================================
+15. SIMPLIFY COMPONENT STRUCTURE
+==================================================
+
+Do not create a component for every tiny piece of UI.
+
+Keep reusable components such as:
+Navbar
+EventCard
+VideoCard
+Button
+Footer
+ContestantForm
+
+Suggested structure:
+
+src/
+├── components/
+│   ├── Navbar.jsx
+│   ├── EventCard.jsx
+│   ├── VideoCard.jsx
+│   ├── Button.jsx
+│   └── Footer.jsx
+├── pages/
+│   ├── Home.jsx
+│   ├── Participate.jsx
+│   └── Tickets.jsx
+├── admin/
+│   ├── Login.jsx
+│   ├── Layout.jsx
+│   ├── Dashboard.jsx
+│   ├── Event.jsx
+│   ├── Applications.jsx
+│   ├── Video.jsx
+│   ├── Tickets.jsx
+│   └── Settings.jsx
+├── services/
+│   └── api.js
+├── styles/
+│   └── main.css
+├── App.jsx
+└── main.jsx
+
+This is a guideline, not a rigid requirement.
+
+==================================================
+16. CSS SIMPLIFICATION
+==================================================
+
+Audit all CSS.
+
+Remove:
+- duplicate selectors
+- unused styles
+- legacy styles
+- conflicting media queries
+- repeated variables
+- unnecessary animations
+- unnecessary gradients
+- unused classes
+
+Prefer one main CSS system.
+
+Use:
+--black
+--white
+--orange
+--red
+--yellow
+--gray
+--container
+--radius
+--transition
+
+Keep the existing HoH visual identity.
+Do not redesign the brand.
+
+==================================================
+17. RESPONSIVE DESIGN
+==================================================
+
+Keep the good parts of the existing responsive system.
+
+Test:
+320px
+360px
+375px
+390px
+430px
+768px
+1024px
+1280px
+1440px
+
+Ensure:
+- no horizontal scrolling
+- no overflowing text
+- buttons are easy to tap
+- forms are easy to use
+- menus work
+- images maintain aspect ratio
+- modals fit small screens
+- tables can scroll when necessary
+- touch targets are approximately 44px or larger
+
+The website should be mobile-first.
+
+==================================================
+18. PERFORMANCE
+==================================================
+
+Prioritize:
+1. Less JavaScript
+2. Less global state
+3. Fewer components
+4. Fewer dependencies
+5. Less CSS
+6. Fewer API calls
+7. Lazy loading where useful
+8. Optimized images
+9. No unnecessary YouTube iframes
+10. No unnecessary animations
+
+Do not add complex performance libraries.
+
+==================================================
+19. DEPENDENCY CLEANUP
+==================================================
+
+Inspect package.json.
+
+For every dependency ask:
+"Is this actually necessary?"
+
+Remove unused dependencies.
+
+Avoid adding:
+- Redux
+- Zustand
+- large UI frameworks
+- animation libraries
+- large utility libraries
+- Axios if fetch is sufficient
+
+Prefer native React, fetch and CSS.
+
+==================================================
+20. LEGACY FILE CLEANUP
+==================================================
+
+Potential legacy files:
+admin.html
+old app.js
+old styles.css
+old server.js
+old HTML files
+unused scripts
+unused assets
+
+Before deleting:
+- check references
+- verify build
+- verify deployment configuration
+
+If completely unused:
+DELETE THEM.
+
+==================================================
+21. ADMIN AUTHENTICATION
+==================================================
+
+Admin must not be publicly accessible.
+
+Create:
+/admin/login
+
+Protect:
+/admin/*
+/admin/events
+/admin/applications
+/admin/video
+/admin/tickets
+/admin/settings
+
+Remove ADMIN from public navigation.
+
+Keep authentication simple.
+Do not create a complicated role/permission system unless needed.
+
+==================================================
+22. ERROR HANDLING
+==================================================
+
+All API operations should have:
+Loading
+Success
+Error
+
+Example:
+Submitting application...
+Application submitted successfully.
+Unable to submit application. Please try again.
+
+Never expose raw server errors.
+
+==================================================
+23. SEO
+==================================================
+
+Keep:
+- title
+- meta description
+- Open Graph
+- favicon
+
+No unnecessary SEO libraries.
+
+==================================================
+24. ACCESSIBILITY
+==================================================
+
+Ensure:
+- real buttons
+- real links
+- form labels
+- alt text
+- keyboard navigation
+- ESC to close dialogs where needed
+- visible focus states
+- good contrast
+- usable mobile navigation
+
+==================================================
+25. FINAL PUBLIC WEBSITE EXPERIENCE
+==================================================
+
+The public website should feel approximately like:
+
+-------------------------------------
+                HOH
+                 ☰
+-------------------------------------
+
+HOUSE OF HUMOUR
+
+India's Biggest Stand-Up Comedy
+Talent Hunt
+
+NEXT EVENT
+
+Kolkata
+Date
+Time
+Venue
+
+[ PARTICIPATE ]
+
+[ GET TICKETS ]
+
+-------------------------------------
+
+WATCH HOH
+
+[ YouTube Thumbnail ]
+
+[ WATCH ]
+
+-------------------------------------
+
+Home | Participate | Tickets
+
+-------------------------------------
+
+The website should feel like a professional entertainment brand, not a SaaS dashboard.
+
+==================================================
+26. FINAL ADMIN EXPERIENCE
+==================================================
+
+HOUSE OF HUMOUR ADMIN
+
+Dashboard
+
+EVENT
+- Edit event
+- Publish/unpublish
+- Set ticket prices
+
+APPLICATIONS
+- View
+- Search
+- Shortlist
+- Approve
+- Reject
+
+VIDEO
+- Change YouTube video
+
+TICKETS
+- Price
+- Booking URL
+- Availability
+
+SETTINGS
+- Logo
+- Contact
+- Social links
+
+Nothing unnecessary.
+
+==================================================
+27. DEVELOPMENT ORDER
+==================================================
+
+PHASE 1
+Simplify public UI.
+Remove unnecessary homepage sections.
+
+Keep:
+Home
+Participate
+Tickets
+
+PHASE 2
+Simplify routing.
+
+PHASE 3
+Simplify AppContext.
+
+PHASE 4
+Remove demo/fake content.
+
+PHASE 5
+Simplify CSS.
+
+PHASE 6
+Remove legacy files and unused dependencies.
+
+PHASE 7
+Build proper Express/Node backend.
+
+PHASE 8
+Connect MongoDB.
+
+PHASE 9
+Connect contestant applications.
+
+PHASE 10
+Connect event management.
+
+PHASE 11
+Connect featured YouTube video.
+
+PHASE 12
+Implement admin authentication.
+
+PHASE 13
+Implement real ticket/payment flow when ready.
+
+PHASE 14
+Final performance and mobile audit.
+
+==================================================
+28. IMPORTANT DEVELOPMENT RULES
+==================================================
+
+RULE 1:
+Do not rebuild the website from scratch.
+
+RULE 2:
+Use the existing React/Vite foundation.
+
+RULE 3:
+Do not redesign the HoH logo or brand identity.
+
+RULE 4:
+Do not add unnecessary features.
+
+RULE 5:
+Do not add unnecessary dependencies.
+
+RULE 6:
+Do not keep dead code.
+
+RULE 7:
+Do not keep fake production data.
+
+RULE 8:
+Do not fake payments.
+
+RULE 9:
+Do not expose admin publicly.
+
+RULE 10:
+Do not use localStorage as the permanent database.
+
+RULE 11:
+Do not create unnecessary global state.
+
+RULE 12:
+Prefer simple code over clever abstractions.
+
+RULE 13:
+Do not sacrifice reliability just to reduce file count.
+
+RULE 14:
+The website must work well on mobile.
+
+RULE 15:
+The admin panel should control the public website without requiring frontend code changes.
+
+==================================================
+29. FINAL TESTING
+==================================================
+
+After every major change:
+
+npm install
+npm run build
+
+Fix all build errors.
+
+Test:
+HOME
+PARTICIPATE
+TICKETS
+ADMIN LOGIN
+ADMIN EVENT
+ADMIN APPLICATIONS
+ADMIN VIDEO
+ADMIN TICKETS
+ADMIN SETTINGS
+
+Test mobile:
+320px
+375px
+430px
+
+Test desktop:
+1024px
+1440px
+
+Verify:
+NO horizontal scrolling
+NO broken routes
+NO console errors
+NO fake payment
+NO fake application success
+NO fake videos
+NO fake contestants
+NO fake production data
+NO public admin navigation
+
+==================================================
+30. FINAL CODEBASE GOAL
+==================================================
+
+LESS CODE
+LESS STATE
+LESS CSS
+LESS JAVASCRIPT
+LESS DEPENDENCIES
+LESS COMPLEXITY
+
+BUT:
+
+MORE RELIABILITY
+MORE SPEED
+MORE CLARITY
+MORE EASY MANAGEMENT
+
+Final system:
+
+React/Vite frontend
++
+Express/Node backend
++
+MongoDB
++
+Simple Admin CMS
+
+==================================================
+31. FINAL DELIVERABLE REPORT
+==================================================
+
+After completing the work, provide:
+
+1. Files deleted
+2. Files merged
+3. Components removed
+4. Routes removed
+5. Dependencies removed
+6. CSS simplified
+7. Global state removed
+8. Demo data removed
+9. Backend changes
+10. MongoDB changes
+11. Admin changes
+12. Performance improvements
+13. Bugs fixed
+14. Features intentionally removed
+15. Features still pending
+16. npm build result
+
+Most importantly:
+
+DO NOT ONLY EXPLAIN WHAT SHOULD BE DONE.
+
+ACTUALLY INSPECT AND MODIFY THE CODEBASE.
+
+Inspect
+→ simplify
+→ refactor
+→ connect backend
+→ test
+→ build
+→ fix errors
+→ final audit.
+
+The final House of Humour website should be a clean, lightweight, professional event platform instead of an over-engineered entertainment application.

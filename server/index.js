@@ -7,10 +7,8 @@ import path from 'path';
 import { connectDB, getDbStatus } from './db.js';
 import eventsRouter from './routes/events.js';
 import applicationsRouter from './routes/applications.js';
-import videosRouter from './routes/videos.js';
-import talentRouter from './routes/talent.js';
-import guestsRouter from './routes/guests.js';
-import sponsorsRouter from './routes/sponsors.js';
+import videoRouter from './routes/video.js';
+import ticketsRouter from './routes/tickets.js';
 import settingsRouter from './routes/settings.js';
 import authRouter from './routes/auth.js';
 
@@ -49,13 +47,11 @@ app.use('/api', (req, res, next) => {
   next();
 });
 
-// API Routes
+// Streamlined API Routes
 app.use('/api/events', eventsRouter);
 app.use('/api/applications', applicationsRouter);
-app.use('/api/videos', videosRouter);
-app.use('/api/talent', talentRouter);
-app.use('/api/guests', guestsRouter);
-app.use('/api/sponsors', sponsorsRouter);
+app.use('/api/video', videoRouter);
+app.use('/api/tickets', ticketsRouter);
 app.use('/api/settings', settingsRouter);
 app.use('/api/auth', authRouter);
 

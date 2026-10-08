@@ -1,19 +1,15 @@
 import Event from './models/Event.js';
 import Application from './models/Application.js';
-import Video from './models/Video.js';
-import Talent from './models/Talent.js';
-import Guest from './models/Guest.js';
-import Sponsor from './models/Sponsor.js';
+import FeaturedVideo from './models/FeaturedVideo.js';
+import TicketSettings from './models/TicketSettings.js';
 import Settings from './models/Settings.js';
 
 import {
   DEFAULT_EVENTS,
-  DEFAULT_VIDEOS,
-  DEFAULT_TALENT,
-  DEFAULT_GUESTS,
-  DEFAULT_SPONSORS,
-  DEFAULT_APPLICATIONS,
-  DEFAULT_SETTINGS
+  DEFAULT_FEATURED_VIDEO,
+  DEFAULT_TICKETS,
+  DEFAULT_SETTINGS,
+  DEFAULT_APPLICATIONS
 } from '../src/data/defaults.js';
 
 export async function seedDatabaseIfEmpty() {
@@ -24,28 +20,16 @@ export async function seedDatabaseIfEmpty() {
       await Event.insertMany(DEFAULT_EVENTS);
     }
 
-    const videoCount = await Video.countDocuments();
-    if (videoCount === 0) {
-      console.log('Seeding initial Videos into MongoDB...');
-      await Video.insertMany(DEFAULT_VIDEOS);
+    const hasVideo = await FeaturedVideo.findOne({ key: 'featured_video' });
+    if (!hasVideo) {
+      console.log('Seeding initial Featured Video into MongoDB...');
+      await FeaturedVideo.create({ key: 'featured_video', ...DEFAULT_FEATURED_VIDEO });
     }
 
-    const talentCount = await Talent.countDocuments();
-    if (talentCount === 0) {
-      console.log('Seeding initial Talent roster into MongoDB...');
-      await Talent.insertMany(DEFAULT_TALENT);
-    }
-
-    const guestCount = await Guest.countDocuments();
-    if (guestCount === 0) {
-      console.log('Seeding initial Guests into MongoDB...');
-      await Guest.insertMany(DEFAULT_GUESTS);
-    }
-
-    const sponsorCount = await Sponsor.countDocuments();
-    if (sponsorCount === 0) {
-      console.log('Seeding initial Sponsors into MongoDB...');
-      await Sponsor.insertMany(DEFAULT_SPONSORS);
+    const hasTickets = await TicketSettings.findOne({ key: 'ticket_settings' });
+    if (!hasTickets) {
+      console.log('Seeding initial Ticket Settings into MongoDB...');
+      await TicketSettings.create({ key: 'ticket_settings', ...DEFAULT_TICKETS });
     }
 
     const appCount = await Application.countDocuments();
@@ -60,7 +44,7 @@ export async function seedDatabaseIfEmpty() {
       await Settings.create({ key: 'site_settings', ...DEFAULT_SETTINGS });
     }
 
-    console.log('Database verification and seed check completed.');
+    console.log('✅ HoH database seed check completed.');
   } catch (err) {
     console.warn('Seed notice (non-fatal):', err.message);
   }

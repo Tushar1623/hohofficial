@@ -1,169 +1,130 @@
-import React, { useState } from 'react';
-import { NavLink, Link, Outlet, useNavigate } from 'react-router-dom';
-import { api } from '../services/api';
+import React, { useState, useEffect } from 'react';
+import { NavLink, Outlet, useNavigate, Link } from 'react-router-dom';
+import { api } from '../services/api.js';
 
 export const AdminLayout = () => {
-  const [auth, setAuth] = useState(() => api.isAdminAuthenticated());
-  const [passcode, setPasscode] = useState('');
-  const [authError, setAuthError] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const navigate = useNavigate();
 
-  const handleLogin = (e) => {
-    e.preventDefault();
-    if (api.loginAdmin(passcode)) {
-      setAuth(true);
-      setAuthError(false);
+  useEffect(() => {
+    const isAuthed = api.isAdminAuthenticated();
+    if (!isAuthed) {
+      navigate('/admin/login', { replace: true });
     } else {
-      setAuthError(true);
+      setAuthChecked(true);
     }
-  };
+  }, [navigate]);
 
   const handleLogout = () => {
     api.logoutAdmin();
-    setAuth(false);
-    navigate('/');
+    navigate('/admin/login', { replace: true });
   };
 
-  // Simple, un-bloated Passcode Gate
-  if (!auth) {
+  if (!authChecked) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#050505', padding: '20px' }}>
-        <form onSubmit={handleLogin} style={{ background: 'var(--surface-1)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '36px', maxWidth: '380px', width: '100%', textAlign: 'center' }}>
-          <img src="/HoH.jpg" alt="HoH" width="48" height="48" style={{ margin: '0 auto 16px auto' }} />
-          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '24px', color: '#FFF', marginBottom: '8px' }}>
-            HOH ORGANIZER CONSOLE
-          </h2>
-          <p style={{ fontSize: '13px', color: 'var(--gray)', marginBottom: '20px' }}>
-            Enter passkey to manage tour chapters and contestant applications.
-          </p>
-
-          {authError && (
-            <div style={{ background: 'rgba(229,57,53,0.2)', border: '1px solid var(--red)', color: '#ff6b6b', padding: '8px', borderRadius: '4px', fontSize: '12px', marginBottom: '14px' }}>
-              Invalid passcode. (Default: <code>hoh2026</code>)
-            </div>
-          )}
-
-          <div style={{ marginBottom: '16px' }}>
-            <input
-              type="password"
-              placeholder="Enter passcode (e.g. hoh2026)"
-              value={passcode}
-              onChange={(e) => setPasscode(e.target.value)}
-              className="form-input"
-              required
-              autoFocus
-            />
-          </div>
-
-          <button type="submit" className="btn btn-primary btn-block">
-            Access Dashboard
-          </button>
-
-          <Link to="/" style={{ display: 'block', marginTop: '16px', fontSize: '12px', color: 'var(--gray)' }}>
-            Return to public site
-          </Link>
-        </form>
+      <div className="admin-loading-screen">
+        <p>Checking admin authorization...</p>
       </div>
     );
   }
 
+  const closeSidebar = () => setSidebarOpen(false);
+
   return (
-    <div className="admin-layout-root">
-      {/* Mobile Drawer Backdrop */}
-      {sidebarOpen && (
-        <div
-          className="mobile-drawer-backdrop"
-          onClick={() => setSidebarOpen(false)}
-          aria-hidden="true"
-        />
-      )}
-
+    <div className="admin-root">
       {/* Admin Sidebar */}
-      <aside className={`admin-sidebar ${sidebarOpen ? 'sidebar-open' : ''}`}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingBottom: '20px', borderBottom: '1px solid var(--border)', marginBottom: '20px' }}>
-            <img src="/HoH.jpg" alt="HoH" width="36" height="36" />
+      <aside className={`admin-sidebar ${sidebarOpen ? 'open' : ''}`}>
+        <div className="admin-sidebar-header">
+          <Link to="/" className="admin-sidebar-brand" target="_blank" title="Preview Public Site">
+            <img src="/HoH.jpg" alt="HoH" width="32" height="32" />
             <div>
-              <span style={{ fontFamily: 'var(--font-display)', fontSize: '20px', color: '#FFF', display: 'block', lineHeight: '1' }}>
-                HOUSE OF <span style={{ color: 'var(--orange)' }}>HUMOUR</span>
-              </span>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '9px', color: 'var(--yellow)', letterSpacing: '0.1em' }}>
-                ADMIN CONSOLE
-              </span>
+              <span className="brand-name">HOH ADMIN</span>
+              <span className="brand-tag">CMS PANEL</span>
             </div>
-          </div>
-
-          <nav>
-            <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              {[
-                { to: '/admin', end: true, icon: 'dashboard', label: 'Dashboard' },
-                { to: '/admin/events', icon: 'theater_comedy', label: 'Events' },
-                { to: '/admin/applications', icon: 'how_to_reg', label: 'Applications' },
-                { to: '/admin/videos', icon: 'smart_display', label: 'Videos' },
-                { to: '/admin/talent', icon: 'groups', label: 'Talent' },
-                { to: '/admin/guests', icon: 'workspace_premium', label: 'Jury & Guests' },
-                { to: '/admin/sponsors', icon: 'handshake', label: 'Sponsors' },
-                { to: '/admin/settings', icon: 'settings', label: 'Settings' }
-              ].map((item) => (
-                <li key={item.to}>
-                  <NavLink
-                    to={item.to}
-                    end={item.end}
-                    className={({ isActive }) => `btn btn-block ${isActive ? 'btn-primary' : 'btn-secondary'}`}
-                    style={{ justifyContent: 'flex-start', padding: '10px 14px', fontSize: '12px' }}
-                    onClick={() => setSidebarOpen(false)}
-                  >
-                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>{item.icon}</span>
-                    <span>{item.label}</span>
-                  </NavLink>
-                </li>
-              ))}
-            </ul>
-          </nav>
-        </div>
-
-        <div style={{ paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
+          </Link>
           <button
             type="button"
-            className="btn btn-secondary btn-block btn-sm"
-            onClick={handleLogout}
-            style={{ color: '#ff6b6b' }}
+            className="btn-icon mobile-only"
+            onClick={closeSidebar}
+            aria-label="Close sidebar"
           >
+            <span className="material-symbols-outlined">close</span>
+          </button>
+        </div>
+
+        <nav className="admin-nav">
+          <NavLink to="/admin" end className={({ isActive }) => `admin-nav-item ${isActive ? 'active' : ''}`} onClick={closeSidebar}>
+            <span className="material-symbols-outlined">dashboard</span>
+            <span>Dashboard</span>
+          </NavLink>
+          <NavLink to="/admin/events" className={({ isActive }) => `admin-nav-item ${isActive ? 'active' : ''}`} onClick={closeSidebar}>
+            <span className="material-symbols-outlined">event</span>
+            <span>Events</span>
+          </NavLink>
+          <NavLink to="/admin/applications" className={({ isActive }) => `admin-nav-item ${isActive ? 'active' : ''}`} onClick={closeSidebar}>
+            <span className="material-symbols-outlined">description</span>
+            <span>Applications</span>
+          </NavLink>
+          <NavLink to="/admin/video" className={({ isActive }) => `admin-nav-item ${isActive ? 'active' : ''}`} onClick={closeSidebar}>
+            <span className="material-symbols-outlined">smart_display</span>
+            <span>Featured Video</span>
+          </NavLink>
+          <NavLink to="/admin/tickets" className={({ isActive }) => `admin-nav-item ${isActive ? 'active' : ''}`} onClick={closeSidebar}>
+            <span className="material-symbols-outlined">confirmation_number</span>
+            <span>Tickets</span>
+          </NavLink>
+          <NavLink to="/admin/settings" className={({ isActive }) => `admin-nav-item ${isActive ? 'active' : ''}`} onClick={closeSidebar}>
+            <span className="material-symbols-outlined">settings</span>
+            <span>Settings</span>
+          </NavLink>
+        </nav>
+
+        <div className="admin-sidebar-footer">
+          <Link to="/" target="_blank" className="btn btn-secondary btn-sm btn-block" style={{ marginBottom: '8px' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>open_in_new</span>
+            <span>View Public Site</span>
+          </Link>
+          <button type="button" className="btn btn-outline-danger btn-sm btn-block" onClick={handleLogout}>
             <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>logout</span>
-            <span>Sign Out</span>
+            <span>Logout</span>
           </button>
         </div>
       </aside>
 
-      {/* Main Content Area */}
-      <div className="admin-main-wrap">
-        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '28px', paddingBottom: '16px', borderBottom: '1px solid var(--border)', flexWrap: 'wrap', gap: '12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      {/* Main Admin Area */}
+      <div className="admin-main-wrapper">
+        <header className="admin-topbar">
+          <div className="topbar-left">
             <button
               type="button"
-              className="btn btn-secondary btn-sm"
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              style={{ display: 'inline-flex' }}
-              aria-label="Toggle admin menu"
+              className="btn-icon mobile-only"
+              onClick={() => setSidebarOpen(true)}
+              aria-label="Open sidebar menu"
             >
               <span className="material-symbols-outlined">menu</span>
             </button>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '13px', color: 'var(--yellow)', fontWeight: '700' }}>
-              PRODUCER WORKSPACE
-            </span>
+            <h2 className="topbar-title">HOUSE OF HUMOUR ADMIN</h2>
           </div>
 
-          <Link to="/" className="btn btn-secondary btn-sm">
-            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>visibility</span>
-            <span>Live Site</span>
-          </Link>
+          <div className="topbar-actions">
+            <button type="button" className="btn btn-outline-secondary btn-sm" onClick={handleLogout}>
+              Logout
+            </button>
+          </div>
         </header>
 
-        <main>
+        <main className="admin-content-area">
           <Outlet />
         </main>
       </div>
+
+      {/* Mobile Backdrop */}
+      {sidebarOpen && (
+        <div className="admin-mobile-backdrop" onClick={closeSidebar} aria-hidden="true" />
+      )}
     </div>
   );
 };
+
+export default AdminLayout;

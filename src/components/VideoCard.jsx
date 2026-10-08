@@ -1,43 +1,72 @@
 import React from 'react';
 
-export const VideoCard = ({ video, onPlay }) => {
-  if (!video) return null;
+// Extract YouTube maxresdefault thumbnail if none is explicitly provided
+function getYouTubeThumbnail(url, customThumb) {
+  if (customThumb && customThumb.trim()) return customThumb;
+  try {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url?.match(regExp);
+    if (match && match[2].length === 11) {
+      return `https://img.youtube.com/vi/${match[2]}/maxresdefault.jpg`;
+    }
+  } catch {}
+  return 'https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&w=1200&q=80';
+}
+
+export const VideoCard = ({ video }) => {
+  if (!video || !video.youtubeUrl) return null;
+
+  const handleOpen = () => {
+    if (video.youtubeUrl) {
+      window.open(video.youtubeUrl, '_blank', 'noopener,noreferrer');
+    }
+  };
+
+  const thumbUrl = getYouTubeThumbnail(video.youtubeUrl, video.thumbnail);
 
   return (
-    <article className="video-card">
+    <article className="featured-video-card">
       <div
-        className="video-thumb-container"
-        onClick={() => onPlay ? onPlay(video) : null}
+        className="featured-video-thumb-wrap"
+        onClick={handleOpen}
         role="button"
         tabIndex="0"
-        aria-label={`Play video: ${video.title}`}
+        aria-label={`Watch on YouTube: ${video.title || 'House of Humour Video'}`}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
-            if (onPlay) onPlay(video);
+            handleOpen();
           }
         }}
       >
         <img
-          src={video.thumbnail || 'https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&w=640&q=80'}
-          alt={video.title}
-          className="video-thumb-img"
+          src={thumbUrl}
+          alt={video.title || 'Featured House of Humour Video'}
+          className="featured-video-img"
           loading="lazy"
+          onError={(e) => {
+            // Fallback if maxresdefault doesn't exist for a particular YouTube video
+            e.target.onerror = null;
+            e.target.src = 'https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&w=1200&q=80';
+          }}
         />
-        <div className="video-play-overlay">
-          <div className="video-play-btn-circle">
-            <span className="material-symbols-outlined">play_arrow</span>
-          </div>
+        <div className="video-play-badge">
+          <span className="material-symbols-outlined">play_arrow</span>
         </div>
-        <span style={{ position: 'absolute', top: '8px', left: '8px', background: 'rgba(0,0,0,0.8)', color: 'var(--yellow)', padding: '2px 8px', borderRadius: '4px', fontSize: '10px', fontFamily: 'var(--font-mono)', fontWeight: '700' }}>
-          {video.tag || video.category || 'STAND-UP'}
-        </span>
       </div>
 
-      <div className="video-card-info">
-        <h3 className="video-card-title">{video.title}</h3>
-        <p className="video-card-meta">{video.category || 'Live Set'} • {video.duration || 'Watch'}</p>
+      <div className="featured-video-footer">
+        <button
+          type="button"
+          className="btn btn-primary btn-sm"
+          onClick={handleOpen}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>smart_display</span>
+          <span>WATCH ON YOUTUBE</span>
+        </button>
       </div>
     </article>
   );
 };
+
+export default VideoCard;

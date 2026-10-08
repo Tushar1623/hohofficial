@@ -1,110 +1,164 @@
 import React, { useState, useEffect } from 'react';
-import { api } from '../services/api';
+import { api } from '../services/api.js';
 
 export const Settings = () => {
   const [settings, setSettings] = useState({
     siteName: 'House of Humour',
-    contactEmail: 'auditions@houseofhumour.in',
-    supportPhone: '+91 98301 22345',
-    circuitCities: 'Kolkata, Mumbai, Delhi NCR, Bengaluru, Pune',
-    auditionStatus: 'OPEN'
+    tagline: "India's Biggest Stand-Up Comedy Talent Hunt",
+    contactNumber: '+91 98301 22345',
+    email: 'auditions@houseofhumour.in',
+    instagram: 'https://instagram.com/houseofhumourofficial',
+    youtube: 'https://youtube.com/@houseofhumour',
+    adminPasscode: 'hoh2026'
   });
-  const [saved, setSaved] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState(null);
 
   useEffect(() => {
-    api.getSettings().then((data) => {
-      if (data) setSettings(data);
-    });
+    loadSettings();
   }, []);
 
-  const handleSubmit = async (e) => {
+  async function loadSettings() {
+    try {
+      setLoading(true);
+      const data = await api.getSettings();
+      if (data) setSettings(data);
+    } catch (err) {
+      console.error('Failed to load settings:', err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const handleSave = async (e) => {
     e.preventDefault();
-    await api.saveSettings(settings);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+    setMessage(null);
+
+    try {
+      setSaving(true);
+      await api.saveSettings(settings);
+      setMessage('Site settings and passkey updated successfully.');
+    } catch (err) {
+      alert('Failed to save settings: ' + err.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
-    <div>
-      <div className="card-section">
-        <div className="card-section-head">
-          <div>
-            <h3>SHOWCASE &amp; CIRCUIT SETTINGS</h3>
-            <p style={{ fontSize: '13px', color: 'var(--gray)' }}>Manage contact channels, active cities, and audition state</p>
-          </div>
+    <div className="admin-page">
+      <div className="admin-page-header">
+        <div>
+          <h1 className="admin-page-title">Global Brand &amp; Site Settings</h1>
+          <p className="admin-page-desc">Configure brand identity, official contact channels, and admin security passkey.</p>
         </div>
-
-        {saved && (
-          <div style={{ background: 'rgba(34, 197, 94, 0.2)', border: '1px solid #22c55e', color: '#22c55e', padding: '10px 14px', borderRadius: 'var(--radius)', marginBottom: '16px', fontSize: '13px' }}>
-            Settings saved successfully!
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="form-row form-row-2">
-          <div className="form-group">
-            <label className="form-label">Brand Name</label>
-            <input
-              type="text"
-              value={settings.siteName}
-              onChange={(e) => setSettings({ ...settings, siteName: e.target.value })}
-              className="form-input"
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Audition Inbox Email</label>
-            <input
-              type="email"
-              value={settings.contactEmail}
-              onChange={(e) => setSettings({ ...settings, contactEmail: e.target.value })}
-              className="form-input"
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Tour Manager Phone</label>
-            <input
-              type="tel"
-              value={settings.supportPhone}
-              onChange={(e) => setSettings({ ...settings, supportPhone: e.target.value })}
-              className="form-input"
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Audition Portal Status</label>
-            <select
-              value={settings.auditionStatus}
-              onChange={(e) => setSettings({ ...settings, auditionStatus: e.target.value })}
-              className="form-select"
-            >
-              <option value="OPEN">OPEN (Accepting Applications)</option>
-              <option value="WAITLIST">WAITLIST ONLY</option>
-              <option value="CLOSED">CLOSED</option>
-            </select>
-          </div>
-
-          <div className="form-group" style={{ gridColumn: 'span 2' }}>
-            <label className="form-label">Active Tour Cities</label>
-            <input
-              type="text"
-              value={settings.circuitCities}
-              onChange={(e) => setSettings({ ...settings, circuitCities: e.target.value })}
-              className="form-input"
-              required
-            />
-          </div>
-
-          <div style={{ gridColumn: 'span 2' }}>
-            <button type="submit" className="btn btn-primary btn-sm">
-              Save Settings
-            </button>
-          </div>
-        </form>
       </div>
+
+      {message && (
+        <div className="admin-success-box">
+          <span className="material-symbols-outlined">check_circle</span>
+          <span>{message}</span>
+        </div>
+      )}
+
+      {loading ? (
+        <div className="admin-card text-center"><p>Loading settings...</p></div>
+      ) : (
+        <div className="admin-card" style={{ maxWidth: '640px' }}>
+          <form onSubmit={handleSave} className="admin-form">
+            <div className="form-group">
+              <label>Brand Name</label>
+              <input
+                type="text"
+                required
+                value={settings.siteName}
+                onChange={(e) => setSettings({ ...settings, siteName: e.target.value })}
+                disabled={saving}
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Brand Tagline</label>
+              <input
+                type="text"
+                required
+                value={settings.tagline}
+                onChange={(e) => setSettings({ ...settings, tagline: e.target.value })}
+                disabled={saving}
+              />
+            </div>
+
+            <div className="form-row">
+              <div className="form-group">
+                <label>Contact Phone / WhatsApp</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="+91 98301 22345"
+                  value={settings.contactNumber}
+                  onChange={(e) => setSettings({ ...settings, contactNumber: e.target.value })}
+                  disabled={saving}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Audition Support Email</label>
+                <input
+                  type="email"
+                  required
+                  placeholder="auditions@houseofhumour.in"
+                  value={settings.email}
+                  onChange={(e) => setSettings({ ...settings, email: e.target.value })}
+                  disabled={saving}
+                />
+              </div>
+            </div>
+
+            <div className="form-row">
+              <div className="form-group">
+                <label>Instagram URL</label>
+                <input
+                  type="url"
+                  placeholder="https://instagram.com/..."
+                  value={settings.instagram || ''}
+                  onChange={(e) => setSettings({ ...settings, instagram: e.target.value })}
+                  disabled={saving}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>YouTube Channel URL</label>
+                <input
+                  type="url"
+                  placeholder="https://youtube.com/..."
+                  value={settings.youtube || ''}
+                  onChange={(e) => setSettings({ ...settings, youtube: e.target.value })}
+                  disabled={saving}
+                />
+              </div>
+            </div>
+
+            <div className="form-group" style={{ borderTop: '1px solid var(--border)', paddingTop: '16px', marginTop: '16px' }}>
+              <label>Admin Access Passkey</label>
+              <input
+                type="text"
+                required
+                value={settings.adminPasscode || 'hoh2026'}
+                onChange={(e) => setSettings({ ...settings, adminPasscode: e.target.value })}
+                disabled={saving}
+              />
+              <span className="field-hint">The passcode required to unlock the Admin Panel at /admin/login.</span>
+            </div>
+
+            <button type="submit" className="btn btn-primary" disabled={saving}>
+              {saving ? 'Saving...' : 'SAVE SETTINGS'}
+            </button>
+          </form>
+        </div>
+      )}
     </div>
   );
 };
+
+export default Settings;

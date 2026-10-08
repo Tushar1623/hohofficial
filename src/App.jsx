@@ -1,28 +1,38 @@
 import React, { Suspense, lazy, useEffect } from 'react';
-import { Routes, Route, useLocation } from 'react-router-dom';
+import { Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
 
-// Public Pages (Direct Imports for Instant First Load)
-import { Home } from './pages/Home';
-import { Events } from './pages/Events';
-import { EventDetails } from './pages/EventDetails';
-import { Apply } from './pages/Apply';
-import { Watch } from './pages/Watch';
-import { Talent } from './pages/Talent';
-import { About } from './pages/About';
-import { NotFound } from './pages/NotFound';
+// Public Components
+import Navbar from './components/Navbar.jsx';
+import Footer from './components/Footer.jsx';
 
-// Admin Routes (Lazy-loaded for Performance - Phase 11)
-const AdminLayout = lazy(() => import('./admin/AdminLayout').then(m => ({ default: m.AdminLayout })));
-const Dashboard = lazy(() => import('./admin/Dashboard').then(m => ({ default: m.Dashboard })));
-const EventManagement = lazy(() => import('./admin/Events').then(m => ({ default: m.EventManagement })));
-const ApplicationManagement = lazy(() => import('./admin/Applications').then(m => ({ default: m.ApplicationManagement })));
-const VideoManagement = lazy(() => import('./admin/Videos').then(m => ({ default: m.VideoManagement })));
-const TalentManagement = lazy(() => import('./admin/Talent').then(m => ({ default: m.TalentManagement })));
-const GuestManagement = lazy(() => import('./admin/Guests').then(m => ({ default: m.GuestManagement })));
-const SponsorManagement = lazy(() => import('./admin/Sponsors').then(m => ({ default: m.SponsorManagement })));
-const Settings = lazy(() => import('./admin/Settings').then(m => ({ default: m.Settings })));
+// Public Pages (Direct Imports for Instant Rendering)
+import Home from './pages/Home.jsx';
+import Participate from './pages/Participate.jsx';
+import Tickets from './pages/Tickets.jsx';
+import NotFound from './pages/NotFound.jsx';
 
-// Scroll to top helper
+// Admin Routes (Lazy-loaded for Performance)
+const AdminLogin = lazy(() => import('./admin/Login.jsx'));
+const AdminLayout = lazy(() => import('./admin/AdminLayout.jsx'));
+const AdminDashboard = lazy(() => import('./admin/Dashboard.jsx'));
+const AdminEvents = lazy(() => import('./admin/Events.jsx'));
+const AdminApplications = lazy(() => import('./admin/Applications.jsx'));
+const AdminVideo = lazy(() => import('./admin/Video.jsx'));
+const AdminTickets = lazy(() => import('./admin/Tickets.jsx'));
+const AdminSettings = lazy(() => import('./admin/Settings.jsx'));
+
+// Public Layout Wrapper with Navbar & Footer
+const PublicLayout = () => (
+  <div className="site-wrapper">
+    <Navbar />
+    <main className="site-main">
+      <Outlet />
+    </main>
+    <Footer />
+  </div>
+);
+
+// Scroll to top helper on route change
 const ScrollToTop = () => {
   const { pathname } = useLocation();
   useEffect(() => {
@@ -36,36 +46,50 @@ export const App = () => {
     <>
       <ScrollToTop />
       <Routes>
-        {/* Public Routes */}
-        <Route path="/" element={<Home />} />
-        <Route path="/events" element={<Events />} />
-        <Route path="/events/:id" element={<EventDetails />} />
-        <Route path="/apply" element={<Apply />} />
-        <Route path="/watch" element={<Watch />} />
-        <Route path="/talent" element={<Talent />} />
-        <Route path="/about" element={<About />} />
+        {/* Public Website Routes */}
+        <Route element={<PublicLayout />}>
+          <Route path="/" element={<Home />} />
+          <Route path="/participate" element={<Participate />} />
+          <Route path="/tickets" element={<Tickets />} />
 
-        {/* Admin Protected Routes (Code-split) */}
+          {/* Legacy route redirects */}
+          <Route path="/apply" element={<Navigate to="/participate" replace />} />
+          <Route path="/events" element={<Navigate to="/tickets" replace />} />
+          <Route path="/events/:id" element={<Navigate to="/tickets" replace />} />
+          <Route path="/watch" element={<Navigate to="/" replace />} />
+          <Route path="/talent" element={<Navigate to="/" replace />} />
+          <Route path="/about" element={<Navigate to="/" replace />} />
+
+          {/* 404 within public layout */}
+          <Route path="*" element={<NotFound />} />
+        </Route>
+
+        {/* Admin Login */}
+        <Route
+          path="/admin/login"
+          element={
+            <Suspense fallback={<div className="admin-loading-screen"><p>Loading Admin Login...</p></div>}>
+              <AdminLogin />
+            </Suspense>
+          }
+        />
+
+        {/* Admin CMS (Protected behind passkey gate) */}
         <Route
           path="/admin"
           element={
-            <Suspense fallback={<div style={{ padding: '60px', textAlign: 'center', color: 'var(--gray)' }}>Loading Admin Console...</div>}>
+            <Suspense fallback={<div className="admin-loading-screen"><p>Loading Admin Panel...</p></div>}>
               <AdminLayout />
             </Suspense>
           }
         >
-          <Route index element={<Dashboard />} />
-          <Route path="events" element={<EventManagement />} />
-          <Route path="applications" element={<ApplicationManagement />} />
-          <Route path="videos" element={<VideoManagement />} />
-          <Route path="talent" element={<TalentManagement />} />
-          <Route path="guests" element={<GuestManagement />} />
-          <Route path="sponsors" element={<SponsorManagement />} />
-          <Route path="settings" element={<Settings />} />
+          <Route index element={<AdminDashboard />} />
+          <Route path="events" element={<AdminEvents />} />
+          <Route path="applications" element={<AdminApplications />} />
+          <Route path="video" element={<AdminVideo />} />
+          <Route path="tickets" element={<AdminTickets />} />
+          <Route path="settings" element={<AdminSettings />} />
         </Route>
-
-        {/* 404 Fallback */}
-        <Route path="*" element={<NotFound />} />
       </Routes>
     </>
   );
