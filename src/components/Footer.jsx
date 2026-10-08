@@ -19,6 +19,8 @@ export const Footer = () => {
             <Link to="/participate">Participate</Link>
             <span className="footer-nav-divider">|</span>
             <Link to="/tickets">Tickets</Link>
+            <span className="footer-nav-divider">|</span>
+            <Link to="/sponsors">Sponsors</Link>
           </nav>
         </div>
 

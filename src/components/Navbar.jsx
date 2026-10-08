@@ -55,6 +55,7 @@ export const Navbar = () => {
               <li><NavLink to="/" end className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>HOME</NavLink></li>
               <li><NavLink to="/participate" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>PARTICIPATE</NavLink></li>
               <li><NavLink to="/tickets" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>TICKETS</NavLink></li>
+              <li><NavLink to="/sponsors" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>SPONSORS</NavLink></li>
             </ul>
           </nav>
 
@@ -122,6 +123,9 @@ export const Navbar = () => {
               </NavLink>
               <NavLink to="/tickets" className="mobile-nav-item" onClick={closeMenu}>
                 TICKETS
+              </NavLink>
+              <NavLink to="/sponsors" className="mobile-nav-item" onClick={closeMenu}>
+                SPONSORS
               </NavLink>
             </nav>
 

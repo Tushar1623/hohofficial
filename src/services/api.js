@@ -57,6 +57,11 @@ export const api = {
     return request('/settings');
   },
 
+  // Public Sponsors
+  getSponsors() {
+    return request('/sponsors');
+  },
+
   // Public Contestant Application
   submitApplication(formData) {
     return request('/applications', {
@@ -124,6 +129,31 @@ export const api = {
     return request('/tickets', {
       method: 'PUT',
       body: JSON.stringify(ticketData)
+    });
+  },
+
+  // Admin Sponsors
+  getAdminSponsors() {
+    return request('/sponsors/admin');
+  },
+
+  createSponsor(sponsorData) {
+    return request('/sponsors', {
+      method: 'POST',
+      body: JSON.stringify(sponsorData)
+    });
+  },
+
+  updateSponsor(id, sponsorData) {
+    return request(`/sponsors/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      body: JSON.stringify(sponsorData)
+    });
+  },
+
+  deleteSponsor(id) {
+    return request(`/sponsors/${encodeURIComponent(id)}`, {
+      method: 'DELETE'
     });
   },
 

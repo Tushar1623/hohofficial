@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import mongoose from 'mongoose';
 import Application from '../models/Application.js';
 import { requireAuth } from '../middleware/auth.js';
 import { requireDatabase } from '../middleware/database.js';
@@ -6,6 +7,13 @@ import { generateApplicationId } from '../utils/applicationId.js';
 import { validateApplicationInput, escapeRegex, VALID_APPLICATION_STATUSES } from '../utils/validation.js';
 
 const router = Router();
+
+function buildAppIdQuery(idParam) {
+  if (idParam && mongoose.Types.ObjectId.isValid(idParam)) {
+    return { $or: [{ applicationId: idParam }, { _id: idParam }] };
+  }
+  return { applicationId: idParam };
+}
 
 // GET /api/applications (Admin only, safe search)
 router.get('/', requireAuth, requireDatabase, async (req, res, next) => {
@@ -41,9 +49,7 @@ router.get('/', requireAuth, requireDatabase, async (req, res, next) => {
 router.get('/:id', requireAuth, requireDatabase, async (req, res, next) => {
   try {
     const idParam = req.params.id;
-    const application = await Application.findOne({
-      $or: [{ applicationId: idParam }, { _id: idParam }]
-    });
+    const application = await Application.findOne(buildAppIdQuery(idParam));
 
     if (!application) {
       return res.status(404).json({
@@ -130,7 +136,7 @@ const updateApplicationHandler = async (req, res, next) => {
     }
 
     const updated = await Application.findOneAndUpdate(
-      { $or: [{ applicationId: idParam }, { _id: idParam }] },
+      buildAppIdQuery(idParam),
       { $set: req.body },
       { new: true, runValidators: true }
     );
@@ -156,9 +162,7 @@ router.put('/:id', requireAuth, requireDatabase, updateApplicationHandler);
 router.delete('/:id', requireAuth, requireDatabase, async (req, res, next) => {
   try {
     const idParam = req.params.id;
-    const deleted = await Application.findOneAndDelete({
-      $or: [{ applicationId: idParam }, { _id: idParam }]
-    });
+    const deleted = await Application.findOneAndDelete(buildAppIdQuery(idParam));
 
     if (!deleted) {
       return res.status(404).json({

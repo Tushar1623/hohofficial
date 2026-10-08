@@ -3,10 +3,12 @@ import { Routes, Route, Outlet, useLocation } from 'react-router-dom';
 
 import Navbar from './components/Navbar.jsx';
 import Footer from './components/Footer.jsx';
+import WhatsAppButton from './components/WhatsAppButton.jsx';
 
 import Home from './pages/Home.jsx';
 import Participate from './pages/Participate.jsx';
 import Tickets from './pages/Tickets.jsx';
+import Sponsors from './pages/Sponsors.jsx';
 import NotFound from './pages/NotFound.jsx';
 
 const AdminLogin = lazy(() => import('./admin/Login.jsx'));
@@ -16,6 +18,7 @@ const AdminEvents = lazy(() => import('./admin/Events.jsx'));
 const AdminApplications = lazy(() => import('./admin/Applications.jsx'));
 const AdminVideo = lazy(() => import('./admin/Video.jsx'));
 const AdminTickets = lazy(() => import('./admin/Tickets.jsx'));
+const AdminSponsors = lazy(() => import('./admin/Sponsors.jsx'));
 const AdminSettings = lazy(() => import('./admin/Settings.jsx'));
 
 const PublicLayout = () => (
@@ -25,6 +28,7 @@ const PublicLayout = () => (
       <Outlet />
     </main>
     <Footer />
+    <WhatsAppButton />
   </div>
 );
 
@@ -45,6 +49,7 @@ export const App = () => {
           <Route path="/" element={<Home />} />
           <Route path="/participate" element={<Participate />} />
           <Route path="/tickets" element={<Tickets />} />
+          <Route path="/sponsors" element={<Sponsors />} />
           <Route path="*" element={<NotFound />} />
         </Route>
 
@@ -70,6 +75,7 @@ export const App = () => {
           <Route path="applications" element={<AdminApplications />} />
           <Route path="video" element={<AdminVideo />} />
           <Route path="tickets" element={<AdminTickets />} />
+          <Route path="sponsors" element={<AdminSponsors />} />
           <Route path="settings" element={<AdminSettings />} />
         </Route>
       </Routes>

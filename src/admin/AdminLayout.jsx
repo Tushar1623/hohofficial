@@ -74,6 +74,10 @@ export const AdminLayout = () => {
             <span className="material-symbols-outlined">confirmation_number</span>
             <span>Tickets</span>
           </NavLink>
+          <NavLink to="/admin/sponsors" className={({ isActive }) => `admin-nav-item ${isActive ? 'active' : ''}`} onClick={closeSidebar}>
+            <span className="material-symbols-outlined">handshake</span>
+            <span>Sponsors</span>
+          </NavLink>
           <NavLink to="/admin/settings" className={({ isActive }) => `admin-nav-item ${isActive ? 'active' : ''}`} onClick={closeSidebar}>
             <span className="material-symbols-outlined">settings</span>
             <span>Settings</span>

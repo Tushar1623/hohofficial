@@ -6,6 +6,7 @@ export const Dashboard = () => {
   const [nextEvent, setNextEvent] = useState(null);
   const [apps, setApps] = useState([]);
   const [video, setVideo] = useState(null);
+  const [sponsors, setSponsors] = useState([]);
   const [dbStatus, setDbStatus] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -13,16 +14,18 @@ export const Dashboard = () => {
     let mounted = true;
     async function load() {
       try {
-        const [evRes, appRes, vidRes, healthRes] = await Promise.allSettled([
+        const [evRes, appRes, vidRes, sponsorsRes, healthRes] = await Promise.allSettled([
           api.getNextEvent(),
           api.getApplications(),
           api.getFeaturedVideo(),
+          api.getAdminSponsors(),
           fetch('/api/health').then((r) => r.json())
         ]);
         if (mounted) {
           if (evRes.status === 'fulfilled') setNextEvent(evRes.value);
           if (appRes.status === 'fulfilled') setApps(appRes.value || []);
           if (vidRes.status === 'fulfilled') setVideo(vidRes.value);
+          if (sponsorsRes.status === 'fulfilled') setSponsors(sponsorsRes.value || []);
           if (healthRes.status === 'fulfilled') setDbStatus(healthRes.value);
         }
       } catch (err) {
@@ -95,6 +98,15 @@ export const Dashboard = () => {
               </span>
               <span className="stat-sub">Homepage Highlight</span>
               <Link to="/admin/video" className="stat-link">Update Video &rarr;</Link>
+            </div>
+
+            <div className="stat-card">
+              <span className="stat-label">BRAND SPONSORS</span>
+              <span className="stat-val stat-success">
+                {sponsors.filter((s) => s.isActive !== false).length}
+              </span>
+              <span className="stat-sub">{sponsors.length} Total Partners</span>
+              <Link to="/admin/sponsors" className="stat-link">Manage Sponsors &rarr;</Link>
             </div>
           </div>
 

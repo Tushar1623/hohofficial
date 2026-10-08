@@ -62,7 +62,7 @@ export const Tickets = () => {
     }
 
     // Direct WhatsApp assistance for genuine ticketing
-    const phone = settings?.contactNumber?.replace(/[^0-9]/g, '') || '919830122345';
+    const phone = settings?.contactNumber?.replace(/[^0-9]/g, '') || '919230374701';
     const text = encodeURIComponent(
       `Hello House of Humour Team! I would like to reserve a ${tier} pass for "${event?.title || 'Next Event'}" in ${event?.city || 'the tour'}.`
     );

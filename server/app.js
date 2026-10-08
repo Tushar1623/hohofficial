@@ -7,6 +7,7 @@ import eventsRouter from './routes/events.js';
 import videoRouter from './routes/video.js';
 import ticketsRouter from './routes/tickets.js';
 import settingsRouter from './routes/settings.js';
+import sponsorsRouter from './routes/sponsors.js';
 import authRouter from './routes/auth.js';
 
 import notFound from './middleware/notFound.js';
@@ -32,8 +33,8 @@ app.use(cors({
   credentials: true
 }));
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Health Check Endpoint (Section 7)
 app.get('/api/health', (req, res) => {
@@ -59,6 +60,7 @@ app.use('/api/applications', applicationsRouter);
 app.use('/api/events', eventsRouter);
 app.use('/api/video', videoRouter);
 app.use('/api/tickets', ticketsRouter);
+app.use('/api/sponsors', sponsorsRouter);
 app.use('/api/settings', settingsRouter);
 app.use('/api/auth', authRouter);
 

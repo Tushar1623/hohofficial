@@ -1,11 +1,19 @@
 import { Router } from 'express';
 import crypto from 'crypto';
+import mongoose from 'mongoose';
 import Event from '../models/Event.js';
 import { requireAuth } from '../middleware/auth.js';
 import { requireDatabase } from '../middleware/database.js';
 import { VALID_EVENT_STATUSES } from '../utils/validation.js';
 
 const router = Router();
+
+function buildEventIdQuery(idParam) {
+  if (idParam && mongoose.Types.ObjectId.isValid(idParam)) {
+    return { $or: [{ eventId: idParam }, { _id: idParam }] };
+  }
+  return { eventId: idParam };
+}
 
 // GET /api/events/next (Public: nearest published upcoming event)
 router.get('/next', requireDatabase, async (req, res, next) => {
@@ -37,9 +45,7 @@ router.get('/', requireDatabase, async (req, res, next) => {
 router.get('/:id', requireDatabase, async (req, res, next) => {
   try {
     const idParam = req.params.id;
-    const event = await Event.findOne({
-      $or: [{ eventId: idParam }, { _id: idParam }]
-    });
+    const event = await Event.findOne(buildEventIdQuery(idParam));
 
     if (!event) {
       return res.status(404).json({
@@ -129,7 +135,7 @@ const updateEventHandler = async (req, res, next) => {
     }
 
     const updated = await Event.findOneAndUpdate(
-      { $or: [{ eventId: idParam }, { _id: idParam }] },
+      buildEventIdQuery(idParam),
       { $set: updateData },
       { new: true }
     );
@@ -155,9 +161,7 @@ router.put('/:id', requireAuth, requireDatabase, updateEventHandler);
 router.delete('/:id', requireAuth, requireDatabase, async (req, res, next) => {
   try {
     const idParam = req.params.id;
-    const deleted = await Event.findOneAndDelete({
-      $or: [{ eventId: idParam }, { _id: idParam }]
-    });
+    const deleted = await Event.findOneAndDelete(buildEventIdQuery(idParam));
 
     if (!deleted) {
       return res.status(404).json({
