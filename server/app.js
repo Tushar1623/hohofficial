@@ -22,26 +22,29 @@ const distPath = path.resolve(__dirname, '../dist');
 
 const app = express();
 
-// Allowed CORS origins
-const allowedOrigins = [
-  'http://localhost:3000',
-  'http://127.0.0.1:3000',
-  process.env.FRONTEND_URL
-].filter(Boolean);
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-app.use(cors({
+// Apply CORS strictly to API routes so frontend static assets and SPA pages are not processed by CORS
+app.use('/api', cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin) || !process.env.FRONTEND_URL) {
-      callback(null, true);
-    } else {
-      callback(new Error('Blocked by CORS policy'));
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'http://127.0.0.1:3000',
+      process.env.FRONTEND_URL
+    ].filter(Boolean);
+
+    if (
+      !origin ||
+      allowedOrigins.includes(origin)
+    ) {
+      return callback(null, true);
     }
+
+    return callback(new Error('Blocked by CORS policy'));
   },
   credentials: true
 }));
-
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Health Check Endpoint (Section 7)
 app.get('/api/health', (req, res) => {
