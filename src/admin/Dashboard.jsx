@@ -19,7 +19,7 @@ export const Dashboard = () => {
           api.getApplications(),
           api.getFeaturedVideo(),
           api.getAdminSponsors(),
-          fetch('/api/health').then((r) => r.json())
+          api.getHealth()
         ]);
         if (mounted) {
           if (evRes.status === 'fulfilled') setNextEvent(evRes.value);

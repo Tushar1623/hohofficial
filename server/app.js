@@ -28,16 +28,30 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Apply CORS strictly to API routes so frontend static assets and SPA pages are not processed by CORS
 app.use('/api', cors({
   origin: (origin, callback) => {
+    // Allow non-browser requests (no origin)
+    if (!origin) {
+      return callback(null, true);
+    }
+
     const allowedOrigins = [
       'http://localhost:3000',
       'http://127.0.0.1:3000',
+      'http://localhost:5000',
+      'http://127.0.0.1:5000',
       process.env.FRONTEND_URL
     ].filter(Boolean);
 
-    if (
-      !origin ||
-      allowedOrigins.includes(origin)
-    ) {
+    // Explicitly allowed origins
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    // Allow Vercel deployments, Render subdomains, and localhost on any port
+    const isVercel = /\.vercel\.app$/.test(origin);
+    const isLocalhost = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+    const isRender = /\.onrender\.com$/.test(origin);
+
+    if (isVercel || isLocalhost || isRender || !process.env.FRONTEND_URL) {
       return callback(null, true);
     }
 

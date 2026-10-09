@@ -1,7 +1,18 @@
-const API_BASE = '/api';
+// Centralized API Base URL configuration
+const getApiBaseUrl = () => {
+  const envUrl = import.meta.env.VITE_API_URL?.trim();
+  if (envUrl) {
+    const clean = envUrl.replace(/\/+$/, '');
+    return clean.endsWith('/api') ? clean : `${clean}/api`;
+  }
+  return 'http://localhost:5000/api';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 async function request(endpoint, options = {}) {
-  const url = `${API_BASE}${endpoint}`;
+  const cleanPath = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  const url = `${API_BASE_URL}${cleanPath}`;
   const token = sessionStorage.getItem('hoh_admin_token');
 
   const headers = {
@@ -10,10 +21,19 @@ async function request(endpoint, options = {}) {
     ...(options.headers || {})
   };
 
-  const response = await fetch(url, {
-    ...options,
-    headers
-  });
+  let response;
+  try {
+    response = await fetch(url, {
+      ...options,
+      headers
+    });
+  } catch (networkErr) {
+    const err = new Error('Unable to connect to the server. Please try again.');
+    err.status = 0;
+    err.code = 'NETWORK_ERROR';
+    err.originalError = networkErr;
+    throw err;
+  }
 
   const isJson = response.headers.get('content-type')?.includes('application/json');
   const data = isJson ? await response.json() : null;
@@ -30,6 +50,11 @@ async function request(endpoint, options = {}) {
 }
 
 export const api = {
+  // Health Status
+  getHealth() {
+    return request('/health');
+  },
+
   // Public Events
   getNextEvent() {
     return request('/events/next');
