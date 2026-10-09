@@ -1,3 +1,6 @@
+import path from 'path';
+import { fileURLToPath } from 'url';
+import fs from 'fs';
 import express from 'express';
 import cors from 'cors';
 import { getDatabaseStatus } from './db.js';
@@ -13,6 +16,10 @@ import authRouter from './routes/auth.js';
 import notFound from './middleware/notFound.js';
 import errorHandler from './middleware/errorHandler.js';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const distPath = path.resolve(__dirname, '../dist');
+
 const app = express();
 
 // Allowed CORS origins
@@ -24,7 +31,7 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (!origin || allowedOrigins.includes(origin) || !process.env.FRONTEND_URL) {
       callback(null, true);
     } else {
       callback(new Error('Blocked by CORS policy'));
@@ -64,8 +71,25 @@ app.use('/api/sponsors', sponsorsRouter);
 app.use('/api/settings', settingsRouter);
 app.use('/api/auth', authRouter);
 
-// 404 Handler
+// 404 Handler for API endpoints — MUST be mounted before static & SPA fallback
 app.use('/api', notFound);
+
+// Serve static assets from production Vite build directory (dist)
+app.use(express.static(distPath));
+
+// SPA Fallback: serve index.html for all non-API GET routes to support React Router
+app.get('{*splat}', (req, res, next) => {
+  if (req.path.startsWith('/api')) {
+    return next();
+  }
+
+  const indexPath = path.resolve(distPath, 'index.html');
+  if (fs.existsSync(indexPath)) {
+    return res.sendFile(indexPath);
+  }
+
+  next();
+});
 
 // Global Error Handler
 app.use(errorHandler);
