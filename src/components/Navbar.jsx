@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { NavLink, Link } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { NavLink, Link, useLocation } from 'react-router-dom';
 
 export const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const headerRef = useRef(null);
+  const location = useLocation();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -11,28 +13,47 @@ export const Navbar = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Lock body scroll when mobile menu is open
+  // Close mobile menu on route change
   useEffect(() => {
-    if (mobileOpen) {
-      const orig = document.body.style.overflow;
-      document.body.style.overflow = 'hidden';
-      return () => { document.body.style.overflow = orig; };
-    }
+    setMobileOpen(false);
+  }, [location.pathname]);
+
+  // Close mobile menu on click/tap outside
+  useEffect(() => {
+    if (!mobileOpen) return;
+
+    const handleClickOutside = (e) => {
+      if (headerRef.current && !headerRef.current.contains(e.target)) {
+        setMobileOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside, { passive: true });
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
   }, [mobileOpen]);
 
-  // Handle ESC
+  // Handle ESC key
   useEffect(() => {
+    if (!mobileOpen) return;
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') setMobileOpen(false);
     };
-    if (mobileOpen) window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [mobileOpen]);
 
   const closeMenu = () => setMobileOpen(false);
 
   return (
-    <header className={`site-header ${scrolled ? 'scrolled' : ''}`}>
+    <header
+      ref={headerRef}
+      className={`site-header ${scrolled ? 'scrolled' : ''} ${mobileOpen ? 'nav-open' : ''}`}
+    >
       <div className="container">
         <div className="header-inner">
           <Link to="/" className="brand-link" onClick={closeMenu} aria-label="House of Humour">
@@ -79,63 +100,54 @@ export const Navbar = () => {
         </div>
       </div>
 
-      {/* Mobile Drawer */}
+      {/* Mobile Navigation Dropdown — Attached directly below header */}
       {mobileOpen && (
-        <div
-          className="mobile-drawer-backdrop"
-          onClick={closeMenu}
-          aria-hidden="true"
+        <nav
+          className="mobile-nav-dropdown"
+          aria-label="Mobile Navigation"
         >
-          <div
-            className="mobile-drawer"
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-label="Navigation Menu"
-          >
-            <div className="mobile-drawer-header">
-              <div className="brand-link">
-                <img
-                  src="/HoH.jpg"
-                  alt="HoH Logo"
-                  className="brand-logo-img"
-                  width="36"
-                  height="36"
-                />
-                <span className="brand-title">HOUSE OF <span>HUMOUR</span></span>
-              </div>
-              <button
-                type="button"
-                className="btn-icon"
-                onClick={closeMenu}
-                aria-label="Close menu"
-              >
-                <span className="material-symbols-outlined">close</span>
-              </button>
-            </div>
-
-            <nav className="mobile-nav-links">
-              <NavLink to="/" end className="mobile-nav-item" onClick={closeMenu}>
-                HOME
-              </NavLink>
-              <NavLink to="/participate" className="mobile-nav-item" onClick={closeMenu}>
-                PARTICIPATE
-              </NavLink>
-              <NavLink to="/tickets" className="mobile-nav-item" onClick={closeMenu}>
-                TICKETS
-              </NavLink>
-              <NavLink to="/sponsors" className="mobile-nav-item" onClick={closeMenu}>
-                SPONSORS
-              </NavLink>
-            </nav>
-
-            <div className="mobile-drawer-cta">
-              <Link to="/tickets" className="btn btn-primary btn-block" onClick={closeMenu}>
-                GET TICKETS
-              </Link>
-            </div>
+          <div className="mobile-nav-list">
+            <NavLink
+              to="/"
+              end
+              className={({ isActive }) => `mobile-nav-link ${isActive ? 'active' : ''}`}
+              onClick={closeMenu}
+            >
+              HOME
+            </NavLink>
+            <NavLink
+              to="/participate"
+              className={({ isActive }) => `mobile-nav-link ${isActive ? 'active' : ''}`}
+              onClick={closeMenu}
+            >
+              PARTICIPATE
+            </NavLink>
+            <NavLink
+              to="/tickets"
+              className={({ isActive }) => `mobile-nav-link ${isActive ? 'active' : ''}`}
+              onClick={closeMenu}
+            >
+              TICKETS
+            </NavLink>
+            <NavLink
+              to="/sponsors"
+              className={({ isActive }) => `mobile-nav-link ${isActive ? 'active' : ''}`}
+              onClick={closeMenu}
+            >
+              SPONSORS
+            </NavLink>
           </div>
-        </div>
+
+          <div className="mobile-nav-cta-wrapper">
+            <Link
+              to="/tickets"
+              className="btn btn-primary btn-block mobile-cta-btn"
+              onClick={closeMenu}
+            >
+              GET TICKETS
+            </Link>
+          </div>
+        </nav>
       )}
     </header>
   );
