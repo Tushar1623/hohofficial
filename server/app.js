@@ -33,12 +33,15 @@ app.use('/api', cors({
       return callback(null, true);
     }
 
+    const rawFrontendUrl = process.env.FRONTEND_URL?.trim();
+    const cleanFrontendUrl = rawFrontendUrl ? rawFrontendUrl.replace(/\/+$/, '').replace(/\/api$/, '') : null;
+
     const allowedOrigins = [
       'http://localhost:3000',
       'http://127.0.0.1:3000',
       'http://localhost:5000',
       'http://127.0.0.1:5000',
-      process.env.FRONTEND_URL
+      cleanFrontendUrl
     ].filter(Boolean);
 
     // Explicitly allowed origins
@@ -51,7 +54,7 @@ app.use('/api', cors({
     const isLocalhost = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
     const isRender = /\.onrender\.com$/.test(origin);
 
-    if (isVercel || isLocalhost || isRender || !process.env.FRONTEND_URL) {
+    if (isVercel || isLocalhost || isRender || !rawFrontendUrl) {
       return callback(null, true);
     }
 

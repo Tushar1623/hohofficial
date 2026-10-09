@@ -1,18 +1,12 @@
 // Centralized API Base URL configuration
-const getApiBaseUrl = () => {
-  const envUrl = import.meta.env.VITE_API_URL?.trim();
-  if (envUrl) {
-    const clean = envUrl.replace(/\/+$/, '');
-    return clean.endsWith('/api') ? clean : `${clean}/api`;
-  }
-  return 'http://localhost:5000/api';
-};
-
-const API_BASE_URL = getApiBaseUrl();
+const API_BASE = (
+  import.meta.env.VITE_API_URL?.trim() ||
+  (import.meta.env.PROD ? 'https://hoh-backend.onrender.com/api' : 'http://localhost:5000/api')
+).replace(/\/+$/, '');
 
 async function request(endpoint, options = {}) {
   const cleanPath = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-  const url = `${API_BASE_URL}${cleanPath}`;
+  const url = `${API_BASE}${cleanPath}`;
   const token = sessionStorage.getItem('hoh_admin_token');
 
   const headers = {
